@@ -36,6 +36,8 @@ const OUT = process.env.OUT_DIR || 'out/latest';
 const PREV = process.env.PREV_DIR || 'previous/latest';
 const ONLY = (process.env.ONLY_PAGES || '').split(',').map(s => s.trim()).filter(Boolean);
 const T = cfg.thresholds;
+// analytics/ad beacons and Next.js RSC prefetches are routinely cancelled when the page moves on; not a site fault
+const IGNORE_ABORTED = (cfg.ignoreAbortedRequests || []).map(p => new RegExp(p, 'i'));
 const startedAt = new Date();
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -185,10 +187,14 @@ for (const p of pages) {
       isMobile: !!v.mobile, hasTouch: !!v.mobile, userAgent: v.userAgent, locale: 'en-US', timezoneId: 'America/New_York',
     });
     const page = await context.newPage();
-    const consoleErrors = [], failed = [];
+    const consoleErrors = [], failed = []; let ignoredAborted = 0;
     page.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.location()?.url || '')) consoleErrors.push(m.text().slice(0, 160)); });
     page.on('response', r => { if (r.status() >= 400 && !/favicon\.ico$/.test(r.url())) failed.push(`${r.status()} ${r.url().slice(0, 120)}`); });
-    page.on('requestfailed', r => failed.push(`FAILED ${r.failure()?.errorText || ''} ${r.url().slice(0, 120)}`));
+    page.on('requestfailed', r => {
+      const err = r.failure()?.errorText || '';
+      if (err === 'net::ERR_ABORTED' && IGNORE_ABORTED.some(re => re.test(r.url()))) { ignoredAborted++; return; }
+      failed.push(`FAILED ${err} ${r.url().slice(0, 120)}`);
+    });
     const t0 = Date.now(); let status = 0;
     try {
       const resp = await page.goto(entry.url, { waitUntil: 'networkidle', timeout: 60000 });
@@ -234,7 +240,7 @@ for (const p of pages) {
 
     const diff = await diffImages(path.join(dir, `${vname}_full.jpg`), path.join(PREV, 'pages', slug, `${vname}_full.jpg`), path.join(dir, `${vname}_diff.jpg`), v.mobile ? 390 : 720);
 
-    entry.views[vname] = { status, loadMs, consoleErrors: consoleErrors.slice(0, 6), failedRequests: [...new Set(failed)].slice(0, 8), ...m, axe, diff };
+    entry.views[vname] = { status, loadMs, consoleErrors: consoleErrors.slice(0, 6), failedRequests: [...new Set(failed)].slice(0, 8), ignoredAbortedRequests: ignoredAborted, ...m, axe, diff };
     log(`${p} ${vname} ${status} ${loadMs}ms h=${m.docH} words=${m.words}${m.overflow ? ' OVERFLOW' : ''}${diff ? ` diff=${diff.pctChanged}%` : ''}`);
     await context.close();
   }

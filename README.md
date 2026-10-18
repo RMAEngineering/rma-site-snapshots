@@ -56,6 +56,8 @@ The `snapshots` branch is rewritten from scratch on every run (orphan commit, fo
 
 Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions, how many blog posts), viewports, thresholds for flags, CTA patterns, link-check limits, axe tags. No code changes needed for normal adjustments.
 
+`ignoreAbortedRequests` lists URL patterns whose `net::ERR_ABORTED` failures are not flagged: Google Ads/GA beacons, Meta Pixel, HubSpot tracking, Vercel Analytics and Next.js `_rsc` prefetches. Browsers cancel these routinely when a page moves on, so they say nothing about the site. Only *aborted* requests are skipped. A 4xx/5xx or any other network error on the same URLs is still flagged. The per-view count of skipped requests is in the manifest as `ignoredAbortedRequests`.
+
 ## Running locally
 
 ```bash

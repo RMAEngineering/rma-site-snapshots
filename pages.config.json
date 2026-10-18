@@ -25,6 +25,14 @@
     "booking": "hubspot\\.com/meetings|meetings\\.hubspot|calendar\\.app\\.google|calendly",
     "phone": "^tel:"
   },
+  "ignoreAbortedRequests": [
+    "^https://([^/]+\\.)?(google-analytics\\.com|googletagmanager\\.com|googleadservices\\.com|googlesyndication\\.com|doubleclick\\.net)/",
+    "^https://([^/]+\\.)?google\\.com/(rmkt|ccm|pagead|g/collect)",
+    "^https://(www\\.facebook\\.com/tr|connect\\.facebook\\.net/)",
+    "^https://([^/]+\\.)?(hs-scripts\\.com|hs-analytics\\.net|hs-banner\\.com|hscollectedforms\\.net|hsadspixel\\.net)/|^https://track\\.hubspot\\.com/",
+    "/_vercel/(insights|speed-insights)/",
+    "[?&]_rsc="
+  ],
   "linkCheck": { "enabled": true, "maxLinks": 400, "concurrency": 8 },
   "axe": { "enabled": true, "tags": ["wcag2a", "wcag2aa"] }
 }
