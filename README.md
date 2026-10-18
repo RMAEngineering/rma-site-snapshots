@@ -1,0 +1,71 @@
+# rma-site-snapshots
+
+Scheduled visual + structural QA for **rma-engineering.com**. Every run renders each sitemap page at desktop (1440) and mobile (390), then checks it, diffs it against the last run, and publishes:
+
+- a phone-friendly **gallery** you can flip through (GitHub Pages)
+- a **report.md** with alerts at the top
+- a **manifest.json** + side-by-side composites that Claude reads directly from GitHub
+
+Runs every Monday 7am ET, on demand with one click, and (optional) automatically after every production deploy.
+
+## What each run checks
+
+| Area | What it catches |
+|---|---|
+| Rendering | HTTP status, load time, console errors, failed requests, broken images |
+| Mobile | horizontal overflow (and which element), tap targets, fixed/sticky bars |
+| Content/SEO | H1 count, meta description length, canonical, robots, thin pages, word count |
+| CTAs | counts of contact / booking / guide / Reality Check / phone links per page |
+| Links | every internal link on the site fetched; 404s listed; suspicious hrefs (`#`, `&`, empty) |
+| Images | oversized images (served at >2× display width), missing alt |
+| Accessibility | axe-core WCAG 2.0/2.1 A+AA scan per page (critical/serious counts, top rules) |
+| Change | pixel diff vs previous run (% changed, page height change), new/removed pages |
+
+## One-time setup (≈10 minutes)
+
+1. **Create a public repo** called `rma-site-snapshots` in the RMAEngineering org (same org as RMA-Engineering-Website) (public so Claude can read the results without a token — it only ever contains screenshots of the public site).
+2. **Push these files** to `main` (drag-and-drop in the GitHub UI works, or `gh repo create rma-site-snapshots --public --source=. --push`).
+3. **Run it once:** Actions → *Site snapshot* → *Run workflow*. First run takes ~5 minutes.
+4. **Turn on the gallery:** Settings → Pages → Source: *Deploy from a branch* → Branch: `snapshots`, folder `/ (root)` → Save. (The `snapshots` branch only exists after the first run.)
+5. Open `https://RMAEngineering.github.io/rma-site-snapshots/` on your phone. Bookmark it.
+6. Add `docs/CLAUDE_VISUAL_REVIEW_PROTOCOL.md` to the Claude Project knowledge.
+
+## After a major site update
+
+Either click **Run workflow** (Actions → Site snapshot), or type in a Project chat: *"Run the visual review"* — Claude will read the latest run and tell you if it needs a fresh one.
+
+Optional: limit a run to a few pages with the `pages` input, e.g. `/,/contact-us,/inventors`.
+
+## Optional: run automatically after every production deploy
+
+Copy `site-repo/trigger-snapshots.yml` into the site repo at `.github/workflows/`, create a fine-grained PAT scoped to this repo (Contents: read/write), store it in the site repo as the secret `SNAPSHOT_TRIGGER_TOKEN`. Vercel's GitHub integration marks production deployments as environment `Production`; the trigger waits 3 minutes for the CDN, then starts a run.
+
+## Where things live
+
+| Thing | Location |
+|---|---|
+| Gallery (humans) | `https://RMAEngineering.github.io/rma-site-snapshots/latest/` |
+| Report | `.../latest/report.md` |
+| Manifest (Claude) | `https://raw.githubusercontent.com/RMAEngineering/rma-site-snapshots/snapshots/latest/manifest.json` |
+| Composites (Claude) | `.../snapshots/latest/pages/<slug>/fold.jpg` and `full.jpg` |
+| 90-day archive | Actions → the run → Artifacts (`snapshot-<run id>.zip`) |
+
+The `snapshots` branch is rewritten from scratch on every run (orphan commit, force-pushed), so the repo stays ~40 MB regardless of how many weeks it runs. Older runs live in the Actions artifacts for 90 days.
+
+## Tuning
+
+Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions, how many blog posts), viewports, thresholds for flags, CTA patterns, link-check limits, axe tags. No code changes needed for normal adjustments.
+
+## Running locally
+
+```bash
+npm install
+npx playwright install chromium
+npm run snapshot            # writes out/latest/index.html
+```
+
+Set `PREV_DIR=path/to/previous/latest` to get diffs locally.
+
+## Cost
+
+$0. Public-repo GitHub Actions minutes are free; each run uses ~5 minutes.

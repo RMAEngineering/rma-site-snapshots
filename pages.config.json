@@ -1,0 +1,30 @@
+{
+  "baseUrl": "https://www.rma-engineering.com",
+  "sitemapPath": "/sitemap.xml",
+  "extraPaths": ["/inventors/thank-you", "/this-page-does-not-exist-404"],
+  "excludePatterns": ["^/privacy-policy$"],
+  "capPatterns": [{ "pattern": "^/blog/.+", "max": 3, "note": "newest posts by sitemap lastmod" }],
+  "keyPages": ["/", "/contact-us", "/inventors", "/reality-check"],
+  "viewports": {
+    "desktop": { "width": 1440, "height": 900, "scale": 1, "mobile": false },
+    "mobile":  { "width": 390,  "height": 844, "scale": 2, "mobile": true,
+                 "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" }
+  },
+  "composites": { "fullTopPx": 3000, "desktopFullWidth": 800, "mobileFullWidth": 400 },
+  "thresholds": {
+    "loadMsWarn": 3000,
+    "diffPctWarn": 3,
+    "heightChangeWarn": 0.10,
+    "oversizeFactor": 2,
+    "minWordsWarn": 120
+  },
+  "ctaPatterns": {
+    "contact": "^/contact-us",
+    "inventors": "^/inventors",
+    "realityCheck": "^/reality-check",
+    "booking": "hubspot\\.com/meetings|meetings\\.hubspot|calendar\\.app\\.google|calendly",
+    "phone": "^tel:"
+  },
+  "linkCheck": { "enabled": true, "maxLinks": 400, "concurrency": 8 },
+  "axe": { "enabled": true, "tags": ["wcag2a", "wcag2aa"] }
+}

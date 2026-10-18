@@ -1,0 +1,28 @@
+# Copy this file into the SITE repo (RMAEngineering/RMA-Engineering-Website)
+# at .github/workflows/trigger-snapshots.yml
+# It fires the snapshot run ~3 minutes after every successful production deploy.
+#
+# One-time setup:
+#   1. Create a fine-grained PAT (GitHub → Settings → Developer settings → Fine-grained tokens)
+#      - Resource owner: RMAEngineering
+#      - Repository access: only rma-site-snapshots
+#      - Permissions: Contents: Read and write   (needed for repository_dispatch)
+#   2. In the SITE repo: Settings → Secrets and variables → Actions → New repository secret
+#      - Name: SNAPSHOT_TRIGGER_TOKEN   Value: the PAT
+
+name: Trigger site snapshot after deploy
+
+on:
+  deployment_status:
+
+jobs:
+  trigger:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CDN/ISR to settle
+        run: sleep 180
+      - name: Dispatch snapshot run
+        env:
+          GH_TOKEN: ${{ secrets.SNAPSHOT_TRIGGER_TOKEN }}
+        run: gh api repos/RMAEngineering/rma-site-snapshots/dispatches -f event_type=site-deployed

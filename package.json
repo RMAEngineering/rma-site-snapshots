@@ -1,0 +1,16 @@
+{
+  "name": "rma-site-snapshots",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Scheduled visual + structural QA snapshots of rma-engineering.com (desktop and mobile), published for human review and for Claude to read.",
+  "scripts": {
+    "snapshot": "node scripts/snapshot.mjs",
+    "snapshot:local": "SITE_URL=http://localhost:8080 node scripts/snapshot.mjs"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "pixelmatch": "^6.0.0",
+    "playwright": "^1.49.0",
+    "sharp": "^0.33.5"
+  }
+}
