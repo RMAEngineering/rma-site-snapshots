@@ -21,7 +21,7 @@
     "oversizeFactor": 2,
     "minWordsWarn": 120
   },
-  "bannedPhrases": ["10+ years", "ten years", "over a decade", "decade of experience", "12 hours", "12-hour", "info@rma-engineering.com", "A+", "on staff", "engineers on staff", "in-house", "in house", "under one roof", "our workshop", "own workshop", "warehouse", "contractor network"],
+  "bannedPhrases": ["10+ years", "ten years", "over a decade", "decade of experience", "12 hours", "12-hour", "info@rma-engineering.com", "A+", "on staff", "engineers on staff", "under one roof", "our workshop", "own workshop", "contractor network", "our in-house", "engineers in-house", "engineers, in-house", "in-house engineers", "in-house prototyping", "in-house team", "in-house mechanical", "in-house design", "in-house fabrication", "built in-house", "build in-house", "prototypes in-house", "work in-house", "engineering in-house", "our in house", "engineers in house", "in house engineers", "in house prototyping", "in house team", "built in house", "our warehouse", "warehouse in New Jersey", "warehouse in North Jersey"],
   "allowPhrases": ["12-hour time zone"],
   "ctaPatterns": {
     "contact": "^/contact-us",
