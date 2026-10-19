@@ -23,6 +23,7 @@ python3 - <<'PY'
 import json;m=json.load(open('manifest.json'))
 print('generated',m['generatedAt'],'| previous',m['previousRun'],'| pages',m['summary']['pages'])
 print('flagged',m['summary']['pagesWithFlags'],'| changed',m['summary']['changedPages'],'| new',m['summary']['newPages'],'| removed',m['summary']['removedPages'])
+print('sitewide change',m['summary'].get('sitewideChange'),'| font mismatch',m['summary'].get('fontMismatchPages'))
 print('broken internal links',m['summary']['brokenInternalLinks'])
 for a in m['alerts']: print('\n',a['path']); [print('   -',f) for f in a['flags']]
 for s in m.get('sitewideA11y',[]): print('\nSITEWIDE',s['rule'],s['impact'],s['pageCount'],'/',s['pagesScanned'],s['target'])
@@ -35,7 +36,7 @@ Read `report.md` too — it has the per-page table (status, load, LCP, words, CT
 
 Default scope, in this order:
 
-1. Every page in `summary.changedPages` (something actually changed)
+1. Every page in `summary.changedPages` (something actually changed) — unless `summary.sitewideChange` is set: then one template-level change hit (nearly) every page, so look at the four key pages plus one blog post and one metro page, and say what changed sitewide rather than listing each page
 2. Every page with flags that are visual in nature (overflow, broken images, oversized images, height change)
 3. The four key pages regardless: `/`, `/contact-us`, `/inventors`, `/reality-check`
 4. New pages
@@ -90,6 +91,7 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | slow load | > 3000 ms |
 | slow LCP | > 2500 ms (lab value from the runner, no throttling — use for regressions, not absolutes) |
 | visually changed | ≥ 3% pixels vs previous run |
+| sitewide change | ≥ 80% of the compared pages visually changed — reported once as `summary.sitewideChange` (`pages`, `compared`, `share`, `desktopAvgPct`, `mobileAvgPct`); the per-page "changed" flags are dropped, `summary.changedPages`, `views.*.diff` and the diff images stay |
 | page height change | ≥ 10% |
 | oversized image | served at > 2× its displayed width |
 | thin page | < 120 words |

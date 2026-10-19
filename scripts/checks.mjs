@@ -1,5 +1,5 @@
 // rma-site-snapshots — scripts/checks.mjs
-// Pure helpers for the non-axe checks (font family). Kept out of snapshot.mjs so they can be
+// Pure helpers for the non-axe checks (font family, sitewide-change rollup). Kept out of snapshot.mjs so they can be
 // unit-tested without launching a browser: `npm test`.
 
 // ---------------------------------------------------------------- font check
@@ -33,4 +33,27 @@ export function fontFlags(views, expected) {
     byFamily.get(bad).push(vn);
   }
   return [...byFamily].map(([fam, vns]) => `font: body font-family starts with '${fam}', expected '${expected}' (${vns.join(', ')})`);
+}
+
+// ---------------------------------------------------------------- sitewide-change rollup
+// the per-view "changed" flag is built here so the rollup can recognise (and remove) exactly that flag and nothing else
+export const changedFlag = (pctChanged, vn) => `changed ${pctChanged}% vs previous (${vn})`;
+export const CHANGED_FLAG_RE = /^changed [\d.]+% vs previous \(/;
+
+// When >= `share` of the compared pages (pages with a diff on at least one viewport) changed by >= diffPctWarn on either
+// viewport, the change is sitewide — a header/footer/template edit, a font swap, a banner — and one line says so instead
+// of a flag on every page. The per-page "changed" flags are removed; each view's diff numbers, the diff images and the
+// "page height" flags stay. Below the share, or with fewer than `minPages` compared pages (a one-page run is not a
+// sitewide statement), nothing changes. Mutates results[].flags; returns the summary or null.
+//   { pages: changed pages, compared, share: pages/compared, desktopAvgPct, mobileAvgPct: mean pctChanged per viewport over the compared views }
+export function rollupSitewideChange(results, { share = 0.8, diffPctWarn = 3, minPages = 2 } = {}) {
+  const compared = results.filter(r => Object.values(r.views || {}).some(v => v?.diff));
+  const changed = compared.filter(r => Object.values(r.views).some(v => v?.diff && v.diff.pctChanged >= diffPctWarn));
+  if (compared.length < minPages || changed.length / compared.length < share) return null;
+  const avg = vn => {
+    const xs = compared.map(r => r.views[vn]?.diff?.pctChanged).filter(x => typeof x === 'number');
+    return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length * 10) / 10 : null;
+  };
+  for (const r of changed) r.flags.splice(0, r.flags.length, ...r.flags.filter(f => !CHANGED_FLAG_RE.test(f)));
+  return { pages: changed.length, compared: compared.length, share: Math.round(changed.length / compared.length * 1000) / 1000, desktopAvgPct: avg('desktop'), mobileAvgPct: avg('mobile') };
 }
