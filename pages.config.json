@@ -21,7 +21,7 @@
     "oversizeFactor": 2,
     "minWordsWarn": 120
   },
-  "bannedPhrases": ["10+ years", "ten years", "over a decade", "decade of experience", "12 hours", "12-hour", "info@rma-engineering.com", "A+"],
+  "bannedPhrases": ["10+ years", "ten years", "over a decade", "decade of experience", "12 hours", "12-hour", "info@rma-engineering.com", "A+", "on staff", "engineers on staff", "in-house", "in house", "under one roof", "our workshop", "own workshop", "warehouse", "contractor network"],
   "allowPhrases": ["12-hour time zone"],
   "ctaPatterns": {
     "contact": "^/contact-us",
