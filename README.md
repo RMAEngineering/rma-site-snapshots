@@ -12,7 +12,7 @@ Runs every Monday 7am ET, on demand with one click, and (optional) automatically
 
 | Area | What it catches |
 |---|---|
-| Rendering | HTTP status, load time, console errors, failed requests, broken images |
+| Rendering | HTTP status, load time, console errors, failed requests (minus the `ignoreAbortedRequests` / `ignoreFailedRequests` carve-outs), broken images |
 | Speed | Largest Contentful Paint per viewport (PerformanceObserver, with the element), flagged above `lcpMsWarn` |
 | Mobile | horizontal overflow (and which element), tap targets, fixed/sticky bars |
 | Content/SEO | H1 count, meta description length, canonical, robots, thin pages, word count |
@@ -22,7 +22,9 @@ Runs every Monday 7am ET, on demand with one click, and (optional) automatically
 | Accessibility | axe-core WCAG 2.0/2.1 A+AA scan per page (critical/serious counts, top rules) |
 | Sitewide a11y | an axe (rule, selector) pair failing on ≥50% of scanned pages is listed once under "Sitewide" and removed from the per-page counts and flags |
 | Copy | `bannedPhrases` (e.g. "10+ years", "12 hours", the old info@ email, "A+") found in a page's visible text, with the matching snippet; `allowPhrases` carve out legitimate uses |
+| Font | the body's computed `font-family` per viewport (`views.<v>.fontFamily`, raw in the gallery meta line); flagged "font: body font-family starts with 'X', expected 'Inter'" when the first family, normalized, does not start with `expectedFont` (the Oct 19 Times New Roman incident) |
 | Change | pixel diff vs previous run (% changed, page height change), new/removed pages |
+| Sitewide change | when ≥80% of the compared pages changed ≥`diffPctWarn`, one "sitewide change" line (`summary.sitewideChange`) replaces the per-page "changed" flags; diff numbers, diff images and "page height" flags stay |
 | Deploy skew | a failed first-party `/_next/static` chunk (404 or network error) is retried once in a fresh browser context; flagged "chunk 404 — possible deploy skew" only if it recurs, otherwise just recorded (`retried`, `summary.retriedViews`) |
 
 ## One-time setup (≈10 minutes)
@@ -58,9 +60,15 @@ The `snapshots` branch is rewritten from scratch on every run (orphan commit, fo
 
 ## Tuning
 
-Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions, how many blog posts), viewports, thresholds for flags (`loadMsWarn`, `lcpMsWarn`, `diffPctWarn`, `heightChangeWarn`, `minWordsWarn`), CTA patterns, link-check limits, axe tags, `bannedPhrases` / `allowPhrases`, `axe.sitewideShare`. No code changes needed for normal adjustments.
+Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions, how many blog posts), viewports, thresholds for flags (`loadMsWarn`, `lcpMsWarn`, `diffPctWarn`, `sitewideChangeShare`, `heightChangeWarn`, `minWordsWarn`), CTA patterns, link-check limits, axe tags, `bannedPhrases` / `allowPhrases`, `axe.sitewideShare`, `expectedFont`. No code changes needed for normal adjustments.
+
+`thresholds.sitewideChangeShare` (default 0.8) is the rollup rule for visual changes. A page is *compared* when it has a diff against the previous run on at least one viewport, and *changed* when either viewport moved by ≥ `diffPctWarn`. When changed ÷ compared ≥ `sitewideChangeShare`, the change is one layout/template edit (header, footer, font, banner), not N page edits: the run reports it **once** — `summary.sitewideChange = { pages, compared, share, desktopAvgPct, mobileAvgPct }` in the manifest (the averages are the mean `pctChanged` over the compared views per viewport), one line under "Changes vs previous run" in report.md, a blue card at the top of the gallery — and removes the per-page `changed X% vs previous` flags. Each view's `diff` numbers, the `*_diff.jpg` images and the `page height ±N%` flags are kept, and `summary.changedPages` still lists every page. Below the share every page keeps its own "changed" flag, as before. At least 2 compared pages are required (a one-page run cannot make a sitewide claim).
+
+`expectedFont` (default `"Inter"`) is what the body's computed `font-family` must start with. Each view records `getComputedStyle(document.body).fontFamily` as `views.<v>.fontFamily` (raw; Chromium reports `__Inter_d8ebd1, __Inter_Fallback_d8ebd1, system-ui, sans-serif`, other engines quote the idents). Only the **first** family in that list is compared, after normalization: surrounding quotes (if any), a leading `__` and a trailing `_<6 hex>` are stripped, because next/font renders the family as `__Inter_d8ebd1`; so `"__Inter_d8ebd1"` → `Inter`, which starts with `Inter` (case-insensitive) → no flag. When the first family is anything else the page gets one flag per offending family with the viewports that show it: `font: body font-family starts with 'Times New Roman', expected 'Inter' (desktop, mobile)` — exactly what the Oct 19 outage looked like, when a stale font class left `--font-inter` undefined for 30 minutes. `summary.fontMismatchPages` lists the pages, `summary.expectedFont` echoes the value in force. Set `expectedFont` to `""` to disable the check. The normalization lives in `scripts/checks.mjs` (`firstFontFamily`) and is unit-tested.
 
 `ignoreAbortedRequests` lists URL patterns whose `net::ERR_ABORTED` failures are not flagged: Google Ads/GA beacons, Meta Pixel, HubSpot tracking, Vercel Analytics and Next.js `_rsc` prefetches. Browsers cancel these routinely when a page moves on, so they say nothing about the site. Only *aborted* requests are skipped. A 4xx/5xx or any other network error on the same URLs is still flagged. The per-view count of skipped requests is in the manifest as `ignoredAbortedRequests`.
+
+`ignoreFailedRequests` is the stronger carve-out: a failed request whose URL *contains* one of these substrings (plain, case-sensitive) never flags, whatever the status code or network error. The only entry is `connect.facebook.net/log/error`, the Meta pixel's own error beacon, which answers 4xx by design and would otherwise show up as a "failed resources" flag on every page. The per-view count is `ignoredFailedRequests`. Keep this list short: anything on it is invisible to the run.
 
 `bannedPhrases` is copy that must never appear on the site (stale claims, the retired info@ address, the wrong BBB grade). Each page's visible text (`document.body.innerText`, so hidden drawers and JSON-LD are excluded) is checked case-insensitively at both viewports; a hit produces one flag per phrase with the count and a snippet, and the page is listed in `summary.bannedPhrasePages`. `allowPhrases` are legitimate uses: a banned match is ignored when an allow phrase appears within 40 characters of it — e.g. `"12-hour time zone"` keeps the tariffs post's "12-hour time zone gap" from tripping `"12-hour"`. For a one-off test, `BANNED_PHRASES_EXTRA="since 2020"` adds phrases for that run only.
 
@@ -79,7 +87,9 @@ PowerShell: `$env:ONLY_PAGES='/,/contact-us'; $env:OUT_DIR='out/test'; node scri
 
 Set `PREV_DIR=path/to/previous/latest` to get diffs locally. `CHROMIUM_PATH` can point at an installed Chrome instead of Playwright's pinned Chromium, but rendering (and so pixel diffs) may then differ from CI.
 
-Test hooks, inert unless set: `BANNED_PHRASES_EXTRA="since 2020"` adds banned phrases for one run (positive test of the copy check); `SIMULATE_CHUNK_FAIL=once` fails the first `/_next/static/chunks` request on the first pass only (expect `retried: true`, no flag), `=always` makes it recur (expect the "chunk 404" flag).
+Test hooks, inert unless set: `BANNED_PHRASES_EXTRA="since 2020"` adds banned phrases for one run (positive test of the copy check); `SIMULATE_CHUNK_FAIL=once` fails the first `/_next/static/chunks` request on the first pass only (expect `retried: true`, no flag), `=always` makes it recur (expect the "chunk 404" flag); `EXPECTED_FONT=Georgia` overrides `expectedFont` for one run (expect every page flagged `font: body font-family starts with 'Inter', expected 'Georgia' (desktop, mobile)`); `SIMULATE_CHANGED=1` marks every view as changed (`pctChanged` forced to 100, `diff.simulated: true`; a diff is fabricated when there is no previous run) — with ≥2 pages expect `summary.sitewideChange` and no per-page "changed" flags; `SIMULATE_FAILED_REQUEST=<url>` makes every view load that URL once after load (as an image) and answers it with a synthetic 400 — with `https://connect.facebook.net/log/error?test=1` expect `ignoredFailedRequests: 2` per view (Playwright reports the synthetic 400 as a response event and an abort event; both are counted, neither flags) and no "failed resources" / "console errors" flag, with any other URL (e.g. `https://example.com/boom`) expect both flags.
+
+Unit tests for the pure helpers (`scripts/checks.mjs`, no browser): `npm test`.
 
 ## Cost
 

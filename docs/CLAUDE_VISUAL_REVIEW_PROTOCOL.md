@@ -23,6 +23,7 @@ python3 - <<'PY'
 import json;m=json.load(open('manifest.json'))
 print('generated',m['generatedAt'],'| previous',m['previousRun'],'| pages',m['summary']['pages'])
 print('flagged',m['summary']['pagesWithFlags'],'| changed',m['summary']['changedPages'],'| new',m['summary']['newPages'],'| removed',m['summary']['removedPages'])
+print('sitewide change',m['summary'].get('sitewideChange'),'| font mismatch',m['summary'].get('fontMismatchPages'))
 print('broken internal links',m['summary']['brokenInternalLinks'])
 for a in m['alerts']: print('\n',a['path']); [print('   -',f) for f in a['flags']]
 for s in m.get('sitewideA11y',[]): print('\nSITEWIDE',s['rule'],s['impact'],s['pageCount'],'/',s['pagesScanned'],s['target'])
@@ -35,7 +36,7 @@ Read `report.md` too — it has the per-page table (status, load, LCP, words, CT
 
 Default scope, in this order:
 
-1. Every page in `summary.changedPages` (something actually changed)
+1. Every page in `summary.changedPages` (something actually changed) — unless `summary.sitewideChange` is set: then one template-level change hit (nearly) every page, so look at the four key pages plus one blog post and one metro page, and say what changed sitewide rather than listing each page
 2. Every page with flags that are visual in nature (overflow, broken images, oversized images, height change)
 3. The four key pages regardless: `/`, `/contact-us`, `/inventors`, `/reality-check`
 4. New pages
@@ -67,6 +68,7 @@ Look at each composite the way a first-time visitor would, desktop and mobile se
 - **Hierarchy:** one obvious next action per screen; CTA contrast; nothing competing with the form on `/contact-us`
 - **Mobile specifics:** text size, tap target spacing, images that got tiny or cropped, cards that stack into a wall
 - **Trust signals:** BBB seal, "since 2020", IP-ownership line, 1-business-day reply promise — present and accurate (not "10+ years", not "12 hours")
+- **Typography:** the site is set in Inter; a serif render (Times New Roman) means the font pipeline broke — the manifest flags it as `font:` and the composites will look wrong everywhere
 - **Copy drift:** anything on screen that contradicts current positioning (see project context docs)
 - **Consistency:** same header/banner behavior across pages; footer links; metro pages don't look templated in a way that reads as thin
 
@@ -89,12 +91,15 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | slow load | > 3000 ms |
 | slow LCP | > 2500 ms (lab value from the runner, no throttling — use for regressions, not absolutes) |
 | visually changed | ≥ 3% pixels vs previous run |
+| sitewide change | ≥ 80% of the compared pages visually changed — reported once as `summary.sitewideChange` (`pages`, `compared`, `share`, `desktopAvgPct`, `mobileAvgPct`); the per-page "changed" flags are dropped, `summary.changedPages`, `views.*.diff` and the diff images stay |
 | page height change | ≥ 10% |
 | oversized image | served at > 2× its displayed width |
 | thin page | < 120 words |
 | a11y | any critical or serious axe violation left after the sitewide dedupe |
 | sitewide a11y | same (rule, selector) on ≥50% of scanned pages — listed once in `sitewideA11y`, excluded from per-page counts |
 | banned phrase | any of pages.config.json `bannedPhrases` in visible text (case-insensitive), unless an `allowPhrases` entry is within 40 chars |
+| font | the body's computed `font-family` (first family, with next/font's `__` prefix and `_<hash>` suffix stripped) does not start with `expectedFont` = `Inter` — e.g. "Times New Roman" means the Inter font class/variable is missing; raw value in `views.<v>.fontFamily`, pages in `summary.fontMismatchPages` |
+| failed resources | any request with status ≥ 400 or a network error, except cancelled beacons/prefetches on `ignoreAbortedRequests` (`net::ERR_ABORTED` only) and anything whose URL contains an `ignoreFailedRequests` substring (`connect.facebook.net/log/error`, the Meta pixel error beacon — any status; counted in `views.<v>.ignoredFailedRequests`, never flagged) |
 | chunk 404 — possible deploy skew | a first-party `/_next/static` request failed twice (once more in a fresh browser context); a one-off failure is only recorded in `summary.retriedViews` |
 
 ## If the manifest fetch fails

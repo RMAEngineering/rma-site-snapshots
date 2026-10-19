@@ -10,6 +10,10 @@
 //   ONLY_PAGES comma-separated paths to limit the run (optional)
 //   BANNED_PHRASES_EXTRA  comma-separated phrases added to pages.config.json bannedPhrases for this run (test hook)
 //   SIMULATE_CHUNK_FAIL   once|always — fail the first /_next/static/chunks/*.js request to exercise the retry (test hook)
+//   EXPECTED_FONT         overrides pages.config.json expectedFont for this run (test hook: EXPECTED_FONT=Georgia must flag every page)
+//   SIMULATE_CHANGED      1 — mark every view as changed (pctChanged forced to 100) to exercise the sitewide-change rollup (test hook)
+//   SIMULATE_FAILED_REQUEST  <url> — every view fetches this URL once after load and the request is answered 400 (test hook for the
+//                            failed-request carve-out: a URL on ignoreFailedRequests must only count in ignoredFailedRequests, any other URL must flag)
 //
 // Outputs:
 //   manifest.json            machine-readable results (Claude reads this first)
@@ -25,6 +29,7 @@ import fs from 'node:fs/promises';
 import fss from 'node:fs';
 import path from 'node:path';
 import { summarizeAxe, dedupeSitewideA11y } from './a11y.mjs';
+import { firstFontFamily, fontFlags, changedFlag, rollupSitewideChange, isIgnoredFailedRequest } from './checks.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -44,12 +49,18 @@ const ONLY = (process.env.ONLY_PAGES || '').split(',').map(s => s.trim()).filter
 const T = cfg.thresholds;
 // analytics/ad beacons and Next.js RSC prefetches are routinely cancelled when the page moves on; not a site fault
 const IGNORE_ABORTED = (cfg.ignoreAbortedRequests || []).map(p => new RegExp(p, 'i'));
+// URL substrings whose failures (any status, any error) never flag: the Meta pixel error beacon answers 4xx by design
+const IGNORE_FAILED = cfg.ignoreFailedRequests || [];
 // copy that must never appear on the site (checked case-insensitively against each page's visible text);
 // allowPhrases are legitimate uses: a banned match is ignored when an allow phrase sits within 40 chars of it
 const BANNED = [...(cfg.bannedPhrases || []), ...(process.env.BANNED_PHRASES_EXTRA || '').split(',').map(s => s.trim()).filter(Boolean)];
 const ALLOW = cfg.allowPhrases || [];
 // an axe (rule, selector) pair failing on at least this share of scanned pages is reported once as "sitewide"
 const SITEWIDE_SHARE = cfg.axe?.sitewideShare ?? 0.5;
+// the body's computed font-family must start with this (first family, normalized — see checks.mjs); '' disables the check
+const EXPECTED_FONT = process.env.EXPECTED_FONT ?? cfg.expectedFont ?? '';
+// when at least this share of the compared pages changed, it is one sitewide change (reported once), not N page changes
+const SITEWIDE_CHANGE_SHARE = T.sitewideChangeShare ?? 0.8;
 const isChunkUrl = u => u.startsWith(BASE + '/_next/static/');   // first-party Next.js build asset (deploy skew shows up here)
 const startedAt = new Date();
 
@@ -158,6 +169,8 @@ function pageMetrics({ ctaPatterns, vw, bannedPhrases, allowPhrases }) {
     forms: document.querySelectorAll('form').length,
     inputs: document.querySelectorAll('input:not([type=hidden]),textarea,select').length,
     foldText, docH: document.documentElement.scrollHeight,
+    // raw computed family, e.g. `__Inter_d8ebd1, __Inter_Fallback_d8ebd1, system-ui, sans-serif`; normalized + compared in checks.mjs
+    fontFamily: getComputedStyle(document.body).fontFamily,
     ttfbMs: nav ? Math.round(nav.responseStart) : null,
     domContentLoadedMs: nav ? Math.round(nav.domContentLoadedEventEnd) : null,
     bannedHits,
@@ -229,11 +242,23 @@ for (const p of pages) {
         let done = false;
         await page.route(/\/_next\/static\/chunks\/[^?]+\.js(\?|$)/, route => { if (done) return route.continue(); done = true; return route.abort('failed'); });
       }
-      const consoleErrors = [], failed = [], chunkFails = []; let ignoredAborted = 0;
-      page.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.location()?.url || '')) consoleErrors.push(m.text().slice(0, 160)); });
-      page.on('response', r => { if (r.status() >= 400 && !/favicon\.ico$/.test(r.url())) { const s = `${r.status()} ${r.url().slice(0, 120)}`; failed.push(s); if (isChunkUrl(r.url())) chunkFails.push(s); } });
+      // test hook for the failed-request carve-out: the page fetches SIMULATE_FAILED_REQUEST once on load and gets a synthetic 400
+      if (process.env.SIMULATE_FAILED_REQUEST) {
+        const simUrl = process.env.SIMULATE_FAILED_REQUEST;
+        await page.route(u => u.href.startsWith(simUrl), route => route.fulfill({ status: 400, contentType: 'text/plain', body: 'simulated failure' }));
+        await page.addInitScript(u => { addEventListener('load', () => { const i = new Image(); i.src = u; }); }, simUrl);   // an <img> request: one response event, no CORS follow-up
+      }
+      const consoleErrors = [], failed = [], chunkFails = []; let ignoredAborted = 0, ignoredFailed = 0;
+      // "Failed to load resource" console errors carry the resource URL as their location: skip them for favicon and carve-out URLs
+      page.on('console', m => { const u = m.location()?.url || ''; if (m.type() === 'error' && !/favicon/.test(u) && !isIgnoredFailedRequest(u, IGNORE_FAILED)) consoleErrors.push(m.text().slice(0, 160)); });
+      page.on('response', r => {
+        if (r.status() < 400 || /favicon\.ico$/.test(r.url())) return;
+        if (isIgnoredFailedRequest(r.url(), IGNORE_FAILED)) { ignoredFailed++; return; }
+        const s = `${r.status()} ${r.url().slice(0, 120)}`; failed.push(s); if (isChunkUrl(r.url())) chunkFails.push(s);
+      });
       page.on('requestfailed', r => {
         const err = r.failure()?.errorText || '';
+        if (isIgnoredFailedRequest(r.url(), IGNORE_FAILED)) { ignoredFailed++; return; }
         if (err === 'net::ERR_ABORTED' && IGNORE_ABORTED.some(re => re.test(r.url()))) { ignoredAborted++; return; }
         const s = `FAILED ${err} ${r.url().slice(0, 120)}`; failed.push(s);
         // an aborted chunk is the fallback goto cancelling in-flight requests, not a missing asset: no retry for it
@@ -267,7 +292,7 @@ for (const p of pages) {
           await page.waitForTimeout(1500);
         }
       }
-      if (!m) m = { title: '', metaDescLen: 0, canonical: '', robots: '', ogImage: false, h1s: [], h2s: [], words: 0, cta: {}, suspiciousLinks: [], internalLinks: [], externalLinkCount: 0, overflow: false, overflowEls: [], imgCount: 0, noAlt: 0, oversized: [], brokenImgs: [], fixed: [], smallTap: 0, interactive: 0, forms: 0, inputs: 0, foldText: [], docH: 0, ttfbMs: null, domContentLoadedMs: null, bannedHits: [] };
+      if (!m) m = { title: '', metaDescLen: 0, canonical: '', robots: '', ogImage: false, h1s: [], h2s: [], words: 0, cta: {}, suspiciousLinks: [], internalLinks: [], externalLinkCount: 0, overflow: false, overflowEls: [], imgCount: 0, noAlt: 0, oversized: [], brokenImgs: [], fixed: [], smallTap: 0, interactive: 0, forms: 0, inputs: 0, foldText: [], docH: 0, fontFamily: null, ttfbMs: null, domContentLoadedMs: null, bannedHits: [] };
       m.internalLinks.forEach(h => allInternal.add(h));
 
       let axe = null;
@@ -291,11 +316,13 @@ for (const p of pages) {
       await toJpeg(foldPng, path.join(dir, `${vname}_fold.jpg`), 74);
       await toJpeg(fullPng, path.join(dir, `${vname}_full.jpg`), 62);
 
-      const diff = await diffImages(path.join(dir, `${vname}_full.jpg`), path.join(PREV, 'pages', slug, `${vname}_full.jpg`), path.join(dir, `${vname}_diff.jpg`), v.mobile ? 390 : 720);
+      let diff = await diffImages(path.join(dir, `${vname}_full.jpg`), path.join(PREV, 'pages', slug, `${vname}_full.jpg`), path.join(dir, `${vname}_diff.jpg`), v.mobile ? 390 : 720);
+      // test hook for the sitewide-change rollup: every view counts as changed (a diff is fabricated when there is no previous run)
+      if (process.env.SIMULATE_CHANGED) diff = { ...(diff || { heightChange: 0, prevHeight: null, curHeight: null, diffFile: null }), pctChanged: 100, simulated: true };
 
       // chunkFailures non-empty on the final view <=> the failure recurred on the retry; retried + empty <=> transient
       const chunkFailures = [...new Set(chunkFails)].slice(0, 4);
-      entry.views[vname] = { status, loadMs, consoleErrors: consoleErrors.slice(0, 6), failedRequests: [...new Set(failed)].slice(0, 8), ignoredAbortedRequests: ignoredAborted,
+      entry.views[vname] = { status, loadMs, consoleErrors: consoleErrors.slice(0, 6), failedRequests: [...new Set(failed)].slice(0, 8), ignoredAbortedRequests: ignoredAborted, ignoredFailedRequests: ignoredFailed,
         retried: pass > 1, chunkFailures, firstAttemptChunkFailures, ...m, lcpMs: lcp.ms, lcpEl: lcp.el, axe, diff };
       log(`${p} ${vname} ${status} ${loadMs}ms lcp=${lcp.ms ?? '–'} h=${m.docH} words=${m.words}${m.overflow ? ' OVERFLOW' : ''}${diff ? ` diff=${diff.pctChanged}%` : ''}${chunkFailures.length ? ` CHUNK-FAIL${pass > 1 ? ' (recurred)' : ''}` : ''}`);
       await context.close();
@@ -332,11 +359,13 @@ for (const p of pages) {
     if (consoleReal.length && !isExpected404) f.push(`console errors (${vn}): ${consoleReal.slice(0, 2).join(' · ')}`);
     if (vw.suspiciousLinks.length) f.push(`suspicious hrefs (${vn}): ${vw.suspiciousLinks.map(s => JSON.stringify(s.href)).slice(0, 3).join(', ')}`);
     if (vw.brokenImgs.length) f.push(`broken images (${vn}): ${vw.brokenImgs.length}`);
-    if (vw.diff && vw.diff.pctChanged >= T.diffPctWarn) f.push(`changed ${vw.diff.pctChanged}% vs previous (${vn})`);
+    if (vw.diff && vw.diff.pctChanged >= T.diffPctWarn) f.push(changedFlag(vw.diff.pctChanged, vn));   // removed again by the sitewide rollup below when (almost) every page changed
     if (vw.diff && Math.abs(vw.diff.heightChange) >= T.heightChangeWarn) f.push(`page height ${vw.diff.heightChange > 0 ? '+' : ''}${Math.round(vw.diff.heightChange * 100)}% vs previous (${vn})`);
     for (const h of vw.bannedHits || []) { const b = banned.get(h.phrase) || { ...h, views: [] }; b.views.push(vn); banned.set(h.phrase, b); }
   }
   for (const b of banned.values()) f.push(`banned phrase "${b.phrase}" ×${b.count} (${b.views.join(', ')}): “…${b.snippet}…”`);
+  // wrong body font (the Oct 19 Times New Roman incident): one flag per offending family, viewports listed
+  f.push(...fontFlags(entry.views, EXPECTED_FONT));
   if (d) {
     if (d.h1s.length !== 1 && !isExpected404) f.push(`${d.h1s.length} H1s`);
     if ((d.metaDescLen < 70 || d.metaDescLen > 165) && !isExpected404) f.push(`meta description ${d.metaDescLen} chars`);
@@ -355,6 +384,13 @@ await browser.close();
 // a shared component): report it once under "Sitewide" and take it out of every page's a11y line and counts.
 const { sitewideA11y, axePagesScanned } = dedupeSitewideA11y(results, SITEWIDE_SHARE);
 log(`a11y: ${sitewideA11y.length} sitewide issue(s) on >=${Math.round(SITEWIDE_SHARE * 100)}% of ${axePagesScanned} scanned pages`);
+
+// ---------------------------------------------------------------- sitewide-change rollup
+// When >= SITEWIDE_CHANGE_SHARE of the compared pages carry a "changed" flag the change is one template/layout edit:
+// say so once (summary.sitewideChange, report.md, gallery) and drop the per-page "changed" flags. Diff numbers, diff
+// images and "page height" flags are untouched. Below the share every page keeps its own flag, as before.
+const sitewideChange = rollupSitewideChange(results, { share: SITEWIDE_CHANGE_SHARE, diffPctWarn: T.diffPctWarn });
+if (sitewideChange) log(`change: sitewide — ${sitewideChange.pages}/${sitewideChange.compared} compared pages changed >=${T.diffPctWarn}% (avg desktop ${sitewideChange.desktopAvgPct}% / mobile ${sitewideChange.mobileAvgPct}%); per-page "changed" flags dropped`);
 
 // ---------------------------------------------------------------- internal link check
 let linkReport = null;
@@ -382,13 +418,15 @@ const changed = results.filter(r => Object.values(r.views).some(v => v.diff && v
 const manifest = {
   generatedAt: startedAt.toISOString(), baseUrl: BASE, durationSec: Math.round((Date.now() - startedAt) / 1000),
   previousRun: prevManifest?.generatedAt || null,
-  summary: { pages: results.length, pagesWithFlags: alerts.length, changedPages: changed, newPages, removedPages,
+  summary: { pages: results.length, pagesWithFlags: alerts.length, changedPages: changed, sitewideChange, newPages, removedPages,
     brokenInternalLinks: linkReport?.broken.length ?? null, linksChecked: linkReport?.checked ?? null,
     sitewideA11yIssues: sitewideA11y.length, axePagesScanned,
     bannedPhrasePages: results.filter(r => Object.values(r.views).some(v => v.bannedHits?.length)).map(r => r.path),
+    expectedFont: EXPECTED_FONT || null,
+    fontMismatchPages: results.filter(r => fontFlags(r.views, EXPECTED_FONT).length).map(r => r.path),
     retriedViews: results.flatMap(r => Object.entries(r.views).filter(([, v]) => v.retried).map(([vn]) => `${r.path} (${vn})`)),
     chunkSkewViews: results.flatMap(r => Object.entries(r.views).filter(([, v]) => v.chunkFailures?.length).map(([vn]) => `${r.path} (${vn})`)) },
-  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. views.*.lcpMs is Largest Contentful Paint in ms (lcpEl = the element); views.*.bannedHits lists banned copy found (phrase, count, snippet); views.*.retried means a first-party /_next/static failure was retried once in a fresh context (chunkFailures non-empty = it recurred, see summary.chunkSkewViews).',
+  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. summary.sitewideChange is non-null when >= ' + Math.round(SITEWIDE_CHANGE_SHARE * 100) + '% of the compared pages changed: one template-level change, reported once; the per-page "changed" flags are dropped (summary.changedPages, views.*.diff and the diff images stay), so review a few representative pages rather than each one. views.*.lcpMs is Largest Contentful Paint in ms (lcpEl = the element); views.*.bannedHits lists banned copy found (phrase, count, snippet); views.*.fontFamily is the raw computed body font-family (next/font renders it as __Inter_<hash>; the page is flagged "font:" when the first family, normalized, does not start with summary.expectedFont, see summary.fontMismatchPages); views.*.retried means a first-party /_next/static failure was retried once in a fresh context (chunkFailures non-empty = it recurred, see summary.chunkSkewViews); views.*.ignoredFailedRequests counts failed requests on the ignoreFailedRequests carve-out list (Meta pixel error beacon), never flagged; ignoredAbortedRequests counts cancelled beacons/prefetches.',
   alerts, sitewideA11y, linkCheck: linkReport,
   pages: results.map(r => ({ path: r.path, slug: r.slug, url: r.url, flags: r.flags,
     files: { fold: `pages/${r.slug}/fold.jpg`, full: `pages/${r.slug}/full.jpg`, desktopFold: `pages/${r.slug}/desktop_fold.jpg`, mobileFold: `pages/${r.slug}/mobile_fold.jpg`, desktopFull: `pages/${r.slug}/desktop_full.jpg`, mobileFull: `pages/${r.slug}/mobile_full.jpg`,
@@ -406,12 +444,13 @@ md += alerts.length ? alerts.map(a => `- **${a.path}**\n${a.flags.map(f => `  - 
 md += `\n## Sitewide accessibility (same element on ≥${Math.round(SITEWIDE_SHARE * 100)}% of ${axePagesScanned} pages — fix once in the layout; excluded from per-page counts)\n\n`;
 md += sitewideA11y.length ? sitewideA11y.map(s => `- **${s.rule}** (${s.impact}) on ${s.pageCount}/${s.pagesScanned} pages — \`${s.target}\`${s.data?.contrastRatio ? ` — contrast ${s.data.contrastRatio} (needs ${s.data.expectedContrastRatio}) ${s.data.fgColor} on ${s.data.bgColor}` : ''}${s.missingFrom.length ? ` — not on: ${s.missingFrom.join(', ')}` : ''}`).join('\n') + '\n' : '- none\n';
 md += `\n## Changes vs previous run\n\n`;
-md += changed.length ? `- Visually changed (≥${T.diffPctWarn}%): ${changed.join(', ')}\n` : '- No page changed more than the threshold\n';
+if (sitewideChange) md += `- **Sitewide change**: ${sitewideChange.pages} of ${sitewideChange.compared} compared pages changed ≥${T.diffPctWarn}% (${Math.round(sitewideChange.share * 100)}%, threshold ${Math.round(SITEWIDE_CHANGE_SHARE * 100)}%) — avg changed pixels desktop ${sitewideChange.desktopAvgPct ?? '–'}% / mobile ${sitewideChange.mobileAvgPct ?? '–'}%. One layout/template change, so the per-page "changed" flags are suppressed; diff images are still linked on every page card.\n`;
+else md += changed.length ? `- Visually changed (≥${T.diffPctWarn}%): ${changed.join(', ')}\n` : '- No page changed more than the threshold\n';
 if (newPages.length) md += `- New pages: ${newPages.join(', ')}\n`;
 if (removedPages.length) md += `- Removed pages: ${removedPages.join(', ')}\n`;
 if (linkReport) { md += `\n## Internal links\n\n${linkReport.checked} checked, ${linkReport.broken.length} broken\n`; if (linkReport.broken.length) md += linkReport.broken.map(b => `- ${b.status} ${b.href}`).join('\n') + '\n'; }
-md += `\n## All pages\n\n| Page | Status | Load d/m (ms) | LCP d/m | Words | H1 | CTA contact/book/guide/RC | Forms | a11y crit/ser | Diff d/m |\n|---|---|---|---|---|---|---|---|---|---|\n`;
-for (const r of results) { const d = r.views.desktop || {}, m = r.views.mobile || {}; const ax = d.axe?.byImpact || {}; md += `| ${r.path} | ${d.status}/${m.status} | ${d.loadMs}/${m.loadMs} | ${d.lcpMs ?? '–'}/${m.lcpMs ?? '–'} | ${d.words} | ${(d.h1s || [])[0]?.slice(0, 50) || '–'} | ${d.cta?.contact}/${d.cta?.booking}/${d.cta?.inventors}/${d.cta?.realityCheck} | ${d.forms} | ${ax.critical || 0}/${ax.serious || 0} | ${d.diff ? d.diff.pctChanged + '%' : '–'}/${m.diff ? m.diff.pctChanged + '%' : '–'} |\n`; }
+md += `\n## All pages\n\n| Page | Status | Load d/m (ms) | LCP d/m | Words | H1 | Font | CTA contact/book/guide/RC | Forms | a11y crit/ser | Diff d/m |\n|---|---|---|---|---|---|---|---|---|---|---|\n`;
+for (const r of results) { const d = r.views.desktop || {}, m = r.views.mobile || {}; const ax = d.axe?.byImpact || {}; md += `| ${r.path} | ${d.status}/${m.status} | ${d.loadMs}/${m.loadMs} | ${d.lcpMs ?? '–'}/${m.lcpMs ?? '–'} | ${d.words} | ${(d.h1s || [])[0]?.slice(0, 50) || '–'} | ${d.fontFamily ? firstFontFamily(d.fontFamily) : '–'} | ${d.cta?.contact}/${d.cta?.booking}/${d.cta?.inventors}/${d.cta?.realityCheck} | ${d.forms} | ${ax.critical || 0}/${ax.serious || 0} | ${d.diff ? d.diff.pctChanged + '%' : '–'}/${m.diff ? m.diff.pctChanged + '%' : '–'} |\n`; }
 await fs.writeFile(path.join(OUT, 'report.md'), md);
 
 // ---------------------------------------------------------------- gallery
@@ -419,7 +458,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const card = r => { const d = r.views.desktop || {}, m = r.views.mobile || {}; const dd = r.views.desktop?.diff, md2 = r.views.mobile?.diff; return `
 <section class="card${r.flags.length ? ' flagged' : ''}" id="${esc(r.slug)}">
  <h2><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.path)}</a> <small>${esc(d.title || '')}</small></h2>
- <div class="meta">HTTP ${d.status}/${m.status} · load ${d.loadMs}/${m.loadMs} ms · LCP ${d.lcpMs ?? '–'}/${m.lcpMs ?? '–'} ms · ${d.words} words · ${d.h1s?.length} H1${d.axe?.byImpact ? ` · a11y ${d.axe.byImpact.critical || 0}/${d.axe.byImpact.serious || 0}` : ''}${dd ? ` · diff ${dd.pctChanged}% / ${md2?.pctChanged ?? '–'}%` : ''}</div>
+ <div class="meta">HTTP ${d.status}/${m.status} · load ${d.loadMs}/${m.loadMs} ms · LCP ${d.lcpMs ?? '–'}/${m.lcpMs ?? '–'} ms · ${d.words} words · ${d.h1s?.length} H1${d.axe?.byImpact ? ` · a11y ${d.axe.byImpact.critical || 0}/${d.axe.byImpact.serious || 0}` : ''}${dd ? ` · diff ${dd.pctChanged}% / ${md2?.pctChanged ?? '–'}%` : ''} · font <code>${esc(d.fontFamily || '–')}</code>${m.fontFamily && m.fontFamily !== d.fontFamily ? ` / <code>${esc(m.fontFamily)}</code>` : ''}</div>
  ${r.flags.length ? `<ul class="flags">${r.flags.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
  <a href="pages/${r.slug}/fold.jpg"><img loading="lazy" src="pages/${r.slug}/fold.jpg" alt="${esc(r.path)} above the fold, desktop and mobile"></a>
  <div class="links"><a href="pages/${r.slug}/desktop_full.jpg">desktop full</a><a href="pages/${r.slug}/mobile_full.jpg">mobile full</a><a href="pages/${r.slug}/full.jpg">top-of-page pair</a>${dd?.diffFile ? `<a href="pages/${r.slug}/${dd.diffFile}">desktop diff</a>` : ''}${md2?.diffFile ? `<a href="pages/${r.slug}/${md2.diffFile}">mobile diff</a>` : ''}</div>
@@ -430,9 +469,10 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta n
 .card{background:#171a21;border:1px solid #262b36;border-radius:12px;padding:14px;margin:0 0 16px}.card.flagged{border-color:#b7791f}h2{font-size:16px;margin:0 0 6px;word-break:break-all}h2 a{color:#e6e8ee;text-decoration:none}h2 small{display:block;color:#9aa3b2;font-weight:400;font-size:13px}
 .meta{color:#9aa3b2;font-size:13px;margin-bottom:8px}.flags{margin:0 0 10px;padding-left:18px;color:#f6c177;font-size:13px}.card.sitewide{border-color:#5b8def}.card.sitewide .flags{color:#c3d4ff}code{font-size:12px;color:#c9d1d9}img{width:100%;height:auto;border-radius:8px;border:1px solid #262b36;background:#fff}.links{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:13px}.links a{color:#8ab4ff}</style></head><body>
 <h1>rma-engineering.com — snapshot ${d8}</h1>
-<div class="sum">${results.length} pages · ${alerts.length} flagged · ${changed.length} changed vs previous${linkReport ? ` · ${linkReport.broken.length} broken internal links` : ''} · ${sitewideA11y.length} sitewide a11y · <a href="report.md">report.md</a> · <a href="manifest.json">manifest.json</a><br>Flagged pages are listed first. Each image shows desktop (1440) and mobile (390) above the fold.</div>
+<div class="sum">${results.length} pages · ${alerts.length} flagged · ${sitewideChange ? `sitewide change (${sitewideChange.pages}/${sitewideChange.compared} pages)` : `${changed.length} changed vs previous`}${linkReport ? ` · ${linkReport.broken.length} broken internal links` : ''} · ${sitewideA11y.length} sitewide a11y · <a href="report.md">report.md</a> · <a href="manifest.json">manifest.json</a><br>Flagged pages are listed first. Each image shows desktop (1440) and mobile (390) above the fold.</div>
+${sitewideChange ? `<section class="card sitewide"><h2>Sitewide change <small>${sitewideChange.pages} of ${sitewideChange.compared} compared pages changed ≥${T.diffPctWarn}% vs the previous run — one layout/template change, not ${sitewideChange.pages} separate ones; per-page "changed" flags suppressed, diff images still linked on each card</small></h2><ul class="flags"><li>avg changed pixels: desktop ${sitewideChange.desktopAvgPct ?? '–'}% · mobile ${sitewideChange.mobileAvgPct ?? '–'}%</li></ul></section>` : ''}
 ${sitewideA11y.length ? `<section class="card sitewide"><h2>Sitewide accessibility <small>same element on ≥${Math.round(SITEWIDE_SHARE * 100)}% of ${axePagesScanned} pages — fix once in the layout; not repeated on the page cards below</small></h2><ul class="flags">${sitewideA11y.map(s => `<li><b>${esc(s.rule)}</b> (${esc(s.impact)}) on ${s.pageCount}/${s.pagesScanned} pages — <code>${esc(s.target)}</code>${s.data?.contrastRatio ? ` — contrast ${esc(s.data.contrastRatio)} (needs ${esc(s.data.expectedContrastRatio)})` : ''}${s.missingFrom.length ? ` — not on: ${esc(s.missingFrom.join(', '))}` : ''}</li>`).join('')}</ul></section>` : ''}
 ${sorted.map(card).join('\n')}
 </body></html>`;
 await fs.writeFile(path.join(OUT, 'index.html'), html);
-log(`done: ${results.length} pages, ${alerts.length} flagged, ${changed.length} changed, ${manifest.durationSec}s`);
+log(`done: ${results.length} pages, ${alerts.length} flagged, ${changed.length} changed${sitewideChange ? ' (sitewide)' : ''}, ${manifest.durationSec}s`);

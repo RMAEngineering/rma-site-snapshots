@@ -5,7 +5,8 @@
   "description": "Scheduled visual + structural QA snapshots of rma-engineering.com (desktop and mobile), published for human review and for Claude to read.",
   "scripts": {
     "snapshot": "node scripts/snapshot.mjs",
-    "snapshot:local": "SITE_URL=http://localhost:8080 node scripts/snapshot.mjs"
+    "snapshot:local": "SITE_URL=http://localhost:8080 node scripts/snapshot.mjs",
+    "test": "node --test tests/checks.test.mjs"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.0",
