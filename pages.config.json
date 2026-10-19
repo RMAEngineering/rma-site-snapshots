@@ -5,6 +5,7 @@
   "excludePatterns": ["^/privacy-policy$"],
   "capPatterns": [{ "pattern": "^/blog/.+", "max": 3, "note": "newest posts by sitemap lastmod" }],
   "keyPages": ["/", "/contact-us", "/inventors", "/reality-check"],
+  "expectedFont": "Inter",
   "viewports": {
     "desktop": { "width": 1440, "height": 900, "scale": 1, "mobile": false },
     "mobile":  { "width": 390,  "height": 844, "scale": 2, "mobile": true,

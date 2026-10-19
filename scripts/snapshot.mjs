@@ -10,6 +10,7 @@
 //   ONLY_PAGES comma-separated paths to limit the run (optional)
 //   BANNED_PHRASES_EXTRA  comma-separated phrases added to pages.config.json bannedPhrases for this run (test hook)
 //   SIMULATE_CHUNK_FAIL   once|always — fail the first /_next/static/chunks/*.js request to exercise the retry (test hook)
+//   EXPECTED_FONT         overrides pages.config.json expectedFont for this run (test hook: EXPECTED_FONT=Georgia must flag every page)
 //
 // Outputs:
 //   manifest.json            machine-readable results (Claude reads this first)
@@ -25,6 +26,7 @@ import fs from 'node:fs/promises';
 import fss from 'node:fs';
 import path from 'node:path';
 import { summarizeAxe, dedupeSitewideA11y } from './a11y.mjs';
+import { firstFontFamily, fontFlags } from './checks.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -50,6 +52,8 @@ const BANNED = [...(cfg.bannedPhrases || []), ...(process.env.BANNED_PHRASES_EXT
 const ALLOW = cfg.allowPhrases || [];
 // an axe (rule, selector) pair failing on at least this share of scanned pages is reported once as "sitewide"
 const SITEWIDE_SHARE = cfg.axe?.sitewideShare ?? 0.5;
+// the body's computed font-family must start with this (first family, normalized — see checks.mjs); '' disables the check
+const EXPECTED_FONT = process.env.EXPECTED_FONT ?? cfg.expectedFont ?? '';
 const isChunkUrl = u => u.startsWith(BASE + '/_next/static/');   // first-party Next.js build asset (deploy skew shows up here)
 const startedAt = new Date();
 
@@ -158,6 +162,8 @@ function pageMetrics({ ctaPatterns, vw, bannedPhrases, allowPhrases }) {
     forms: document.querySelectorAll('form').length,
     inputs: document.querySelectorAll('input:not([type=hidden]),textarea,select').length,
     foldText, docH: document.documentElement.scrollHeight,
+    // raw computed family, e.g. `"__Inter_d8ebd1", "__Inter_Fallback_d8ebd1", system-ui, ...`; normalized + compared in checks.mjs
+    fontFamily: getComputedStyle(document.body).fontFamily,
     ttfbMs: nav ? Math.round(nav.responseStart) : null,
     domContentLoadedMs: nav ? Math.round(nav.domContentLoadedEventEnd) : null,
     bannedHits,
@@ -267,7 +273,7 @@ for (const p of pages) {
           await page.waitForTimeout(1500);
         }
       }
-      if (!m) m = { title: '', metaDescLen: 0, canonical: '', robots: '', ogImage: false, h1s: [], h2s: [], words: 0, cta: {}, suspiciousLinks: [], internalLinks: [], externalLinkCount: 0, overflow: false, overflowEls: [], imgCount: 0, noAlt: 0, oversized: [], brokenImgs: [], fixed: [], smallTap: 0, interactive: 0, forms: 0, inputs: 0, foldText: [], docH: 0, ttfbMs: null, domContentLoadedMs: null, bannedHits: [] };
+      if (!m) m = { title: '', metaDescLen: 0, canonical: '', robots: '', ogImage: false, h1s: [], h2s: [], words: 0, cta: {}, suspiciousLinks: [], internalLinks: [], externalLinkCount: 0, overflow: false, overflowEls: [], imgCount: 0, noAlt: 0, oversized: [], brokenImgs: [], fixed: [], smallTap: 0, interactive: 0, forms: 0, inputs: 0, foldText: [], docH: 0, fontFamily: null, ttfbMs: null, domContentLoadedMs: null, bannedHits: [] };
       m.internalLinks.forEach(h => allInternal.add(h));
 
       let axe = null;
@@ -337,6 +343,8 @@ for (const p of pages) {
     for (const h of vw.bannedHits || []) { const b = banned.get(h.phrase) || { ...h, views: [] }; b.views.push(vn); banned.set(h.phrase, b); }
   }
   for (const b of banned.values()) f.push(`banned phrase "${b.phrase}" ×${b.count} (${b.views.join(', ')}): “…${b.snippet}…”`);
+  // wrong body font (the Oct 19 Times New Roman incident): one flag per offending family, viewports listed
+  f.push(...fontFlags(entry.views, EXPECTED_FONT));
   if (d) {
     if (d.h1s.length !== 1 && !isExpected404) f.push(`${d.h1s.length} H1s`);
     if ((d.metaDescLen < 70 || d.metaDescLen > 165) && !isExpected404) f.push(`meta description ${d.metaDescLen} chars`);
@@ -386,9 +394,11 @@ const manifest = {
     brokenInternalLinks: linkReport?.broken.length ?? null, linksChecked: linkReport?.checked ?? null,
     sitewideA11yIssues: sitewideA11y.length, axePagesScanned,
     bannedPhrasePages: results.filter(r => Object.values(r.views).some(v => v.bannedHits?.length)).map(r => r.path),
+    expectedFont: EXPECTED_FONT || null,
+    fontMismatchPages: results.filter(r => fontFlags(r.views, EXPECTED_FONT).length).map(r => r.path),
     retriedViews: results.flatMap(r => Object.entries(r.views).filter(([, v]) => v.retried).map(([vn]) => `${r.path} (${vn})`)),
     chunkSkewViews: results.flatMap(r => Object.entries(r.views).filter(([, v]) => v.chunkFailures?.length).map(([vn]) => `${r.path} (${vn})`)) },
-  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. views.*.lcpMs is Largest Contentful Paint in ms (lcpEl = the element); views.*.bannedHits lists banned copy found (phrase, count, snippet); views.*.retried means a first-party /_next/static failure was retried once in a fresh context (chunkFailures non-empty = it recurred, see summary.chunkSkewViews).',
+  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. views.*.lcpMs is Largest Contentful Paint in ms (lcpEl = the element); views.*.bannedHits lists banned copy found (phrase, count, snippet); views.*.fontFamily is the raw computed body font-family (next/font renders it as __Inter_<hash>; the page is flagged "font:" when the first family, normalized, does not start with summary.expectedFont, see summary.fontMismatchPages); views.*.retried means a first-party /_next/static failure was retried once in a fresh context (chunkFailures non-empty = it recurred, see summary.chunkSkewViews).',
   alerts, sitewideA11y, linkCheck: linkReport,
   pages: results.map(r => ({ path: r.path, slug: r.slug, url: r.url, flags: r.flags,
     files: { fold: `pages/${r.slug}/fold.jpg`, full: `pages/${r.slug}/full.jpg`, desktopFold: `pages/${r.slug}/desktop_fold.jpg`, mobileFold: `pages/${r.slug}/mobile_fold.jpg`, desktopFull: `pages/${r.slug}/desktop_full.jpg`, mobileFull: `pages/${r.slug}/mobile_full.jpg`,
@@ -410,8 +420,8 @@ md += changed.length ? `- Visually changed (≥${T.diffPctWarn}%): ${changed.joi
 if (newPages.length) md += `- New pages: ${newPages.join(', ')}\n`;
 if (removedPages.length) md += `- Removed pages: ${removedPages.join(', ')}\n`;
 if (linkReport) { md += `\n## Internal links\n\n${linkReport.checked} checked, ${linkReport.broken.length} broken\n`; if (linkReport.broken.length) md += linkReport.broken.map(b => `- ${b.status} ${b.href}`).join('\n') + '\n'; }
-md += `\n## All pages\n\n| Page | Status | Load d/m (ms) | LCP d/m | Words | H1 | CTA contact/book/guide/RC | Forms | a11y crit/ser | Diff d/m |\n|---|---|---|---|---|---|---|---|---|---|\n`;
-for (const r of results) { const d = r.views.desktop || {}, m = r.views.mobile || {}; const ax = d.axe?.byImpact || {}; md += `| ${r.path} | ${d.status}/${m.status} | ${d.loadMs}/${m.loadMs} | ${d.lcpMs ?? '–'}/${m.lcpMs ?? '–'} | ${d.words} | ${(d.h1s || [])[0]?.slice(0, 50) || '–'} | ${d.cta?.contact}/${d.cta?.booking}/${d.cta?.inventors}/${d.cta?.realityCheck} | ${d.forms} | ${ax.critical || 0}/${ax.serious || 0} | ${d.diff ? d.diff.pctChanged + '%' : '–'}/${m.diff ? m.diff.pctChanged + '%' : '–'} |\n`; }
+md += `\n## All pages\n\n| Page | Status | Load d/m (ms) | LCP d/m | Words | H1 | Font | CTA contact/book/guide/RC | Forms | a11y crit/ser | Diff d/m |\n|---|---|---|---|---|---|---|---|---|---|---|\n`;
+for (const r of results) { const d = r.views.desktop || {}, m = r.views.mobile || {}; const ax = d.axe?.byImpact || {}; md += `| ${r.path} | ${d.status}/${m.status} | ${d.loadMs}/${m.loadMs} | ${d.lcpMs ?? '–'}/${m.lcpMs ?? '–'} | ${d.words} | ${(d.h1s || [])[0]?.slice(0, 50) || '–'} | ${d.fontFamily ? firstFontFamily(d.fontFamily) : '–'} | ${d.cta?.contact}/${d.cta?.booking}/${d.cta?.inventors}/${d.cta?.realityCheck} | ${d.forms} | ${ax.critical || 0}/${ax.serious || 0} | ${d.diff ? d.diff.pctChanged + '%' : '–'}/${m.diff ? m.diff.pctChanged + '%' : '–'} |\n`; }
 await fs.writeFile(path.join(OUT, 'report.md'), md);
 
 // ---------------------------------------------------------------- gallery
@@ -419,7 +429,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const card = r => { const d = r.views.desktop || {}, m = r.views.mobile || {}; const dd = r.views.desktop?.diff, md2 = r.views.mobile?.diff; return `
 <section class="card${r.flags.length ? ' flagged' : ''}" id="${esc(r.slug)}">
  <h2><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.path)}</a> <small>${esc(d.title || '')}</small></h2>
- <div class="meta">HTTP ${d.status}/${m.status} · load ${d.loadMs}/${m.loadMs} ms · LCP ${d.lcpMs ?? '–'}/${m.lcpMs ?? '–'} ms · ${d.words} words · ${d.h1s?.length} H1${d.axe?.byImpact ? ` · a11y ${d.axe.byImpact.critical || 0}/${d.axe.byImpact.serious || 0}` : ''}${dd ? ` · diff ${dd.pctChanged}% / ${md2?.pctChanged ?? '–'}%` : ''}</div>
+ <div class="meta">HTTP ${d.status}/${m.status} · load ${d.loadMs}/${m.loadMs} ms · LCP ${d.lcpMs ?? '–'}/${m.lcpMs ?? '–'} ms · ${d.words} words · ${d.h1s?.length} H1${d.axe?.byImpact ? ` · a11y ${d.axe.byImpact.critical || 0}/${d.axe.byImpact.serious || 0}` : ''}${dd ? ` · diff ${dd.pctChanged}% / ${md2?.pctChanged ?? '–'}%` : ''} · font <code>${esc(d.fontFamily || '–')}</code>${m.fontFamily && m.fontFamily !== d.fontFamily ? ` / <code>${esc(m.fontFamily)}</code>` : ''}</div>
  ${r.flags.length ? `<ul class="flags">${r.flags.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
  <a href="pages/${r.slug}/fold.jpg"><img loading="lazy" src="pages/${r.slug}/fold.jpg" alt="${esc(r.path)} above the fold, desktop and mobile"></a>
  <div class="links"><a href="pages/${r.slug}/desktop_full.jpg">desktop full</a><a href="pages/${r.slug}/mobile_full.jpg">mobile full</a><a href="pages/${r.slug}/full.jpg">top-of-page pair</a>${dd?.diffFile ? `<a href="pages/${r.slug}/${dd.diffFile}">desktop diff</a>` : ''}${md2?.diffFile ? `<a href="pages/${r.slug}/${md2.diffFile}">mobile diff</a>` : ''}</div>

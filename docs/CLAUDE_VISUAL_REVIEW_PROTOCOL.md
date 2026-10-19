@@ -67,6 +67,7 @@ Look at each composite the way a first-time visitor would, desktop and mobile se
 - **Hierarchy:** one obvious next action per screen; CTA contrast; nothing competing with the form on `/contact-us`
 - **Mobile specifics:** text size, tap target spacing, images that got tiny or cropped, cards that stack into a wall
 - **Trust signals:** BBB seal, "since 2020", IP-ownership line, 1-business-day reply promise — present and accurate (not "10+ years", not "12 hours")
+- **Typography:** the site is set in Inter; a serif render (Times New Roman) means the font pipeline broke — the manifest flags it as `font:` and the composites will look wrong everywhere
 - **Copy drift:** anything on screen that contradicts current positioning (see project context docs)
 - **Consistency:** same header/banner behavior across pages; footer links; metro pages don't look templated in a way that reads as thin
 
@@ -95,6 +96,7 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | a11y | any critical or serious axe violation left after the sitewide dedupe |
 | sitewide a11y | same (rule, selector) on ≥50% of scanned pages — listed once in `sitewideA11y`, excluded from per-page counts |
 | banned phrase | any of pages.config.json `bannedPhrases` in visible text (case-insensitive), unless an `allowPhrases` entry is within 40 chars |
+| font | the body's computed `font-family` (first family, with next/font's `__` prefix and `_<hash>` suffix stripped) does not start with `expectedFont` = `Inter` — e.g. "Times New Roman" means the Inter font class/variable is missing; raw value in `views.<v>.fontFamily`, pages in `summary.fontMismatchPages` |
 | chunk 404 — possible deploy skew | a first-party `/_next/static` request failed twice (once more in a fresh browser context); a one-off failure is only recorded in `summary.retriedViews` |
 
 ## If the manifest fetch fails
