@@ -38,7 +38,7 @@ Runs every Monday 7am ET, on demand with one click, and (optional) automatically
 
 Either click **Run workflow** (Actions → Site snapshot), or type in a Project chat: *"Run the visual review"* — Claude will read the latest run and tell you if it needs a fresh one.
 
-Optional: limit a run to a few pages with the `pages` input, e.g. `/,/contact-us,/inventors`.
+Optional: limit a run to a few pages with the `pages` input, e.g. `/,/contact-us,/inventors`. Note that a limited run on `main` still replaces the live gallery with that partial page set; runs on any other branch (`gh workflow run snapshot.yml --ref <branch> -f pages=...`) skip the publish step and only produce the Actions artifact.
 
 ## Optional: run automatically after every production deploy
 
@@ -58,7 +58,7 @@ The `snapshots` branch is rewritten from scratch on every run (orphan commit, fo
 
 ## Tuning
 
-Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions, how many blog posts), viewports, thresholds for flags, CTA patterns, link-check limits, axe tags. No code changes needed for normal adjustments.
+Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions, how many blog posts), viewports, thresholds for flags (`loadMsWarn`, `lcpMsWarn`, `diffPctWarn`, `heightChangeWarn`, `minWordsWarn`), CTA patterns, link-check limits, axe tags, `bannedPhrases` / `allowPhrases`, `axe.sitewideShare`. No code changes needed for normal adjustments.
 
 `ignoreAbortedRequests` lists URL patterns whose `net::ERR_ABORTED` failures are not flagged: Google Ads/GA beacons, Meta Pixel, HubSpot tracking, Vercel Analytics and Next.js `_rsc` prefetches. Browsers cancel these routinely when a page moves on, so they say nothing about the site. Only *aborted* requests are skipped. A 4xx/5xx or any other network error on the same URLs is still flagged. The per-view count of skipped requests is in the manifest as `ignoredAbortedRequests`.
 
@@ -72,9 +72,14 @@ Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions,
 npm install
 npx playwright install chromium
 npm run snapshot            # writes out/latest/index.html
+MSYS_NO_PATHCONV=1 ONLY_PAGES=/,/contact-us OUT_DIR=out/test node scripts/snapshot.mjs   # subset (same as the workflow's "pages" input); Git Bash on Windows converts a leading "/" to C:/Program Files/Git/ without MSYS_NO_PATHCONV
 ```
 
-Set `PREV_DIR=path/to/previous/latest` to get diffs locally.
+PowerShell: `$env:ONLY_PAGES='/,/contact-us'; $env:OUT_DIR='out/test'; node scripts/snapshot.mjs` (the `VAR=x cmd` form in `npm run snapshot:local` only works in a POSIX shell).
+
+Set `PREV_DIR=path/to/previous/latest` to get diffs locally. `CHROMIUM_PATH` can point at an installed Chrome instead of Playwright's pinned Chromium, but rendering (and so pixel diffs) may then differ from CI.
+
+Test hooks, inert unless set: `BANNED_PHRASES_EXTRA="since 2020"` adds banned phrases for one run (positive test of the copy check); `SIMULATE_CHUNK_FAIL=once` fails the first `/_next/static/chunks` request on the first pass only (expect `retried: true`, no flag), `=always` makes it recur (expect the "chunk 404" flag).
 
 ## Cost
 
