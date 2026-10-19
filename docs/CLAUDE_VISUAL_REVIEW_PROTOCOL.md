@@ -25,6 +25,7 @@ print('generated',m['generatedAt'],'| previous',m['previousRun'],'| pages',m['su
 print('flagged',m['summary']['pagesWithFlags'],'| changed',m['summary']['changedPages'],'| new',m['summary']['newPages'],'| removed',m['summary']['removedPages'])
 print('broken internal links',m['summary']['brokenInternalLinks'])
 for a in m['alerts']: print('\n',a['path']); [print('   -',f) for f in a['flags']]
+for s in m.get('sitewideA11y',[]): print('\nSITEWIDE',s['rule'],s['impact'],s['pageCount'],'/',s['pagesScanned'],s['target'])
 PY
 ```
 
@@ -86,11 +87,15 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | Flag | Threshold |
 |---|---|
 | slow load | > 3000 ms |
+| slow LCP | > 2500 ms (lab value from the runner, no throttling — use for regressions, not absolutes) |
 | visually changed | ≥ 3% pixels vs previous run |
 | page height change | ≥ 10% |
 | oversized image | served at > 2× its displayed width |
 | thin page | < 120 words |
-| a11y | any critical or serious axe violation |
+| a11y | any critical or serious axe violation left after the sitewide dedupe |
+| sitewide a11y | same (rule, selector) on ≥50% of scanned pages — listed once in `sitewideA11y`, excluded from per-page counts |
+| banned phrase | any of pages.config.json `bannedPhrases` in visible text (case-insensitive), unless an `allowPhrases` entry is within 40 chars |
+| chunk 404 — possible deploy skew | a first-party `/_next/static` request failed twice (once more in a fresh browser context); a one-off failure is only recorded in `summary.retriedViews` |
 
 ## If the manifest fetch fails
 

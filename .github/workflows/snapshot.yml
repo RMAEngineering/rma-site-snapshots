@@ -47,6 +47,7 @@ jobs:
         run: node scripts/snapshot.mjs
 
       - name: Publish to the snapshots branch (orphan, so the repo never bloats)
+        if: github.ref == 'refs/heads/main'    # branch test runs (gh workflow run --ref <branch>) must not replace the live gallery
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
