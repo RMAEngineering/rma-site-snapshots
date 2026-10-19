@@ -29,6 +29,9 @@ import { summarizeAxe, dedupeSitewideA11y } from './a11y.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const sharp = require('sharp');
+// no libvips cache: a retried view overwrites the files that the pass-1 diff already read; cached open handles would
+// block that write on Windows and a cached decode could feed pass-1 pixels into the pass-2 diff. Nothing here reuses an input.
+sharp.cache(false);
 const pixelmatch = require('pixelmatch').default || require('pixelmatch');
 let AxeBuilder = null;
 try { AxeBuilder = require('@axe-core/playwright').default; } catch { /* optional */ }
