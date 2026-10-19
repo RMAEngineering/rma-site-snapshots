@@ -8,6 +8,7 @@
 //   OUT_DIR    output folder (default out/latest)
 //   PREV_DIR   previous run folder for diffs (default previous/latest; optional)
 //   ONLY_PAGES comma-separated paths to limit the run (optional)
+//   BANNED_PHRASES_EXTRA  comma-separated phrases added to pages.config.json bannedPhrases for this run (test hook)
 //
 // Outputs:
 //   manifest.json            machine-readable results (Claude reads this first)
@@ -38,6 +39,10 @@ const ONLY = (process.env.ONLY_PAGES || '').split(',').map(s => s.trim()).filter
 const T = cfg.thresholds;
 // analytics/ad beacons and Next.js RSC prefetches are routinely cancelled when the page moves on; not a site fault
 const IGNORE_ABORTED = (cfg.ignoreAbortedRequests || []).map(p => new RegExp(p, 'i'));
+// copy that must never appear on the site (checked case-insensitively against each page's visible text);
+// allowPhrases are legitimate uses: a banned match is ignored when an allow phrase sits within 40 chars of it
+const BANNED = [...(cfg.bannedPhrases || []), ...(process.env.BANNED_PHRASES_EXTRA || '').split(',').map(s => s.trim()).filter(Boolean)];
+const ALLOW = cfg.allowPhrases || [];
 const startedAt = new Date();
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -87,7 +92,7 @@ async function getPages() {
 }
 
 // ---------------------------------------------------------------- in-page metrics
-function pageMetrics({ ctaPatterns, vw }) {
+function pageMetrics({ ctaPatterns, vw, bannedPhrases, allowPhrases }) {
   const txt = e => (e && e.textContent || '').trim().replace(/\s+/g, ' ');
   const re = Object.fromEntries(Object.entries(ctaPatterns).map(([k, v]) => [k, new RegExp(v, 'i')]));
   const links = [...document.querySelectorAll('a[href]')];
@@ -116,6 +121,21 @@ function pageMetrics({ ctaPatterns, vw }) {
     .slice(0, 10).map(e => `${e.tagName.toLowerCase()}: ${txt(e).slice(0, 90)}`);
   const nav = performance.getEntriesByType('navigation')[0];
   const lcpEntries = performance.getEntriesByType('largest-contentful-paint');
+  // banned copy: the whole visible page (header/footer hold the email, BBB rating and reply promise), innerText so that
+  // hidden drawers, <script>/JSON-LD and display:none responsive variants are excluded. Word-boundary guards only where
+  // the phrase starts/ends with a word char ("A+" must not match "DATA+"). A match is dropped when an allow phrase
+  // appears within 40 chars of it ("12-hour time zone" is not the old "12-hour reply" claim).
+  const bodyText = (document.body.innerText || '').replace(/\s+/g, ' ');
+  const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const allowRes = (allowPhrases || []).map(a => new RegExp(reEsc(a), 'i'));
+  const bannedHits = (bannedPhrases || []).map(phrase => {
+    const re = new RegExp((/^\w/.test(phrase) ? '(?<!\\w)' : '') + reEsc(phrase) + (/\w$/.test(phrase) ? '(?!\\w)' : ''), 'gi');
+    const hits = [...bodyText.matchAll(re)]
+      .filter(h => !allowRes.some(a => a.test(bodyText.slice(Math.max(0, h.index - 40), h.index + phrase.length + 40))));
+    if (!hits.length) return null;
+    const i = hits[0].index;
+    return { phrase, count: hits.length, snippet: bodyText.slice(Math.max(0, i - 45), i + phrase.length + 45).trim() };
+  }).filter(Boolean);
   return {
     title: document.title,
     metaDescLen: ((document.querySelector('meta[name=description]') || {}).content || '').length,
@@ -134,6 +154,7 @@ function pageMetrics({ ctaPatterns, vw }) {
     ttfbMs: nav ? Math.round(nav.responseStart) : null,
     domContentLoadedMs: nav ? Math.round(nav.domContentLoadedEventEnd) : null,
     lcpMs: lcpEntries.length ? Math.round(lcpEntries[lcpEntries.length - 1].startTime) : null,
+    bannedHits,
   };
 }
 
@@ -211,7 +232,7 @@ for (const p of pages) {
       try {
         await autoscroll();
         await page.waitForTimeout(600);
-        m = await page.evaluate(pageMetrics, { ctaPatterns: cfg.ctaPatterns, vw: v.width });
+        m = await page.evaluate(pageMetrics, { ctaPatterns: cfg.ctaPatterns, vw: v.width, bannedPhrases: BANNED, allowPhrases: ALLOW });
         break;
       } catch (e) { // client-side navigation/redirect mid-measure: wait and retry once
         consoleErrors.push('measure: ' + e.message.slice(0, 100));
@@ -219,7 +240,7 @@ for (const p of pages) {
         await page.waitForTimeout(1500);
       }
     }
-    if (!m) m = { title: '', metaDescLen: 0, canonical: '', robots: '', ogImage: false, h1s: [], h2s: [], words: 0, cta: {}, suspiciousLinks: [], internalLinks: [], externalLinkCount: 0, overflow: false, overflowEls: [], imgCount: 0, noAlt: 0, oversized: [], brokenImgs: [], fixed: [], smallTap: 0, interactive: 0, forms: 0, inputs: 0, foldText: [], docH: 0, ttfbMs: null, domContentLoadedMs: null, lcpMs: null };
+    if (!m) m = { title: '', metaDescLen: 0, canonical: '', robots: '', ogImage: false, h1s: [], h2s: [], words: 0, cta: {}, suspiciousLinks: [], internalLinks: [], externalLinkCount: 0, overflow: false, overflowEls: [], imgCount: 0, noAlt: 0, oversized: [], brokenImgs: [], fixed: [], smallTap: 0, interactive: 0, forms: 0, inputs: 0, foldText: [], docH: 0, ttfbMs: null, domContentLoadedMs: null, lcpMs: null, bannedHits: [] };
     m.internalLinks.forEach(h => allInternal.add(h));
 
     let axe = null;
@@ -259,6 +280,7 @@ for (const p of pages) {
   // ---- flags (what a human should look at)
   const f = entry.flags;
   const isExpected404 = /404|does-not-exist/.test(p);
+  const banned = new Map();   // phrase -> { phrase, count, snippet, views[] } merged across viewports (responsive copy differs)
   for (const [vn, vw] of Object.entries(entry.views)) {
     if (vw.status >= 400 && !isExpected404) f.push(`HTTP ${vw.status} (${vn})`);
     if (vw.loadMs > T.loadMsWarn) f.push(`slow load ${vw.loadMs}ms (${vn})`);
@@ -270,7 +292,9 @@ for (const p of pages) {
     if (vw.brokenImgs.length) f.push(`broken images (${vn}): ${vw.brokenImgs.length}`);
     if (vw.diff && vw.diff.pctChanged >= T.diffPctWarn) f.push(`changed ${vw.diff.pctChanged}% vs previous (${vn})`);
     if (vw.diff && Math.abs(vw.diff.heightChange) >= T.heightChangeWarn) f.push(`page height ${vw.diff.heightChange > 0 ? '+' : ''}${Math.round(vw.diff.heightChange * 100)}% vs previous (${vn})`);
+    for (const h of vw.bannedHits || []) { const b = banned.get(h.phrase) || { ...h, views: [] }; b.views.push(vn); banned.set(h.phrase, b); }
   }
+  for (const b of banned.values()) f.push(`banned phrase "${b.phrase}" ×${b.count} (${b.views.join(', ')}): “…${b.snippet}…”`);
   if (d) {
     if (d.h1s.length !== 1 && !isExpected404) f.push(`${d.h1s.length} H1s`);
     if ((d.metaDescLen < 70 || d.metaDescLen > 165) && !isExpected404) f.push(`meta description ${d.metaDescLen} chars`);
@@ -311,8 +335,9 @@ const manifest = {
   generatedAt: startedAt.toISOString(), baseUrl: BASE, durationSec: Math.round((Date.now() - startedAt) / 1000),
   previousRun: prevManifest?.generatedAt || null,
   summary: { pages: results.length, pagesWithFlags: alerts.length, changedPages: changed, newPages, removedPages,
-    brokenInternalLinks: linkReport?.broken.length ?? null, linksChecked: linkReport?.checked ?? null },
-  howToRead: 'Start with summary + alerts. For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run.',
+    brokenInternalLinks: linkReport?.broken.length ?? null, linksChecked: linkReport?.checked ?? null,
+    bannedPhrasePages: results.filter(r => Object.values(r.views).some(v => v.bannedHits?.length)).map(r => r.path) },
+  howToRead: 'Start with summary + alerts. For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. views.*.bannedHits lists banned copy found (phrase, count, snippet).',
   alerts, linkCheck: linkReport,
   pages: results.map(r => ({ path: r.path, slug: r.slug, url: r.url, flags: r.flags,
     files: { fold: `pages/${r.slug}/fold.jpg`, full: `pages/${r.slug}/full.jpg`, desktopFold: `pages/${r.slug}/desktop_fold.jpg`, mobileFold: `pages/${r.slug}/mobile_fold.jpg`, desktopFull: `pages/${r.slug}/desktop_full.jpg`, mobileFull: `pages/${r.slug}/mobile_full.jpg`,

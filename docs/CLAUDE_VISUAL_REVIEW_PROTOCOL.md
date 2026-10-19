@@ -91,6 +91,7 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | oversized image | served at > 2× its displayed width |
 | thin page | < 120 words |
 | a11y | any critical or serious axe violation |
+| banned phrase | any of pages.config.json `bannedPhrases` in visible text (case-insensitive), unless an `allowPhrases` entry is within 40 chars |
 
 ## If the manifest fetch fails
 
