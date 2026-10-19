@@ -23,6 +23,7 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs/promises';
 import fss from 'node:fs';
 import path from 'node:path';
+import { summarizeAxe, dedupeSitewideA11y } from './a11y.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -43,6 +44,8 @@ const IGNORE_ABORTED = (cfg.ignoreAbortedRequests || []).map(p => new RegExp(p, 
 // allowPhrases are legitimate uses: a banned match is ignored when an allow phrase sits within 40 chars of it
 const BANNED = [...(cfg.bannedPhrases || []), ...(process.env.BANNED_PHRASES_EXTRA || '').split(',').map(s => s.trim()).filter(Boolean)];
 const ALLOW = cfg.allowPhrases || [];
+// an axe (rule, selector) pair failing on at least this share of scanned pages is reported once as "sitewide"
+const SITEWIDE_SHARE = cfg.axe?.sitewideShare ?? 0.5;
 const startedAt = new Date();
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -244,13 +247,18 @@ for (const p of pages) {
     m.internalLinks.forEach(h => allInternal.add(h));
 
     let axe = null;
-    if (AxeBuilder && cfg.axe?.enabled && vname === 'desktop' && status < 400) {
+    // real responses only: status 0 (goto failed) would scan Chromium's error page and pollute the sitewide denominator
+    if (AxeBuilder && cfg.axe?.enabled && vname === 'desktop' && status >= 200 && status < 400) {
       try {
         const r = await new AxeBuilder({ page }).withTags(cfg.axe.tags || ['wcag2a', 'wcag2aa']).analyze();
-        const byImpact = {};
-        for (const vi of r.violations) byImpact[vi.impact || 'minor'] = (byImpact[vi.impact || 'minor'] || 0) + vi.nodes.length;
-        axe = { violations: r.violations.length, nodes: r.violations.reduce((a, vi) => a + vi.nodes.length, 0), byImpact,
-          top: r.violations.sort((a, b) => b.nodes.length - a.nodes.length).slice(0, 5).map(vi => ({ id: vi.id, impact: vi.impact, nodes: vi.nodes.length, help: vi.help })) };
+        // one item per failing node; (rule, target) is the key the sitewide pass after the page loop dedupes on
+        const items = r.violations.flatMap(vi => vi.nodes.map(n => ({
+          rule: vi.id, impact: vi.impact || 'minor', help: vi.help,
+          target: Array.isArray(n.target) ? n.target.flat(Infinity).join(' ') : String(n.target),
+          data: (n.any?.[0] || n.all?.[0] || n.none?.[0] || {}).data ?? null,
+          html: (n.html || '').slice(0, 160),
+        })));
+        axe = { violations: r.violations.length, nodes: items.length, ...summarizeAxe(items), items };   // page-only numbers substituted after the loop
       } catch (e) { axe = { error: e.message.slice(0, 120) }; }
     }
 
@@ -302,11 +310,17 @@ for (const p of pages) {
     if (d.noAlt) f.push(`${d.noAlt} images without alt`);
     if (d.words < T.minWordsWarn && !isExpected404) f.push(`thin page: ${d.words} words`);
     if (!d.cta.contact && !d.cta.booking && !isExpected404) f.push('no contact or booking CTA found');
-    if (d.axe && d.axe.byImpact && (d.axe.byImpact.critical || d.axe.byImpact.serious)) f.push(`a11y: ${d.axe.byImpact.critical || 0} critical / ${d.axe.byImpact.serious || 0} serious issues (${d.axe.top.slice(0, 2).map(t => t.id).join(', ')})`);
+    // the a11y flag is pushed after the page loop, once sitewide (template) nodes are known — see "sitewide a11y dedupe"
   }
   results.push(entry);
 }
 await browser.close();
+
+// ---------------------------------------------------------------- sitewide a11y dedupe
+// A (rule, selector) pair that fails on >= SITEWIDE_SHARE of the scanned pages is a layout issue (header/footer/nav or
+// a shared component): report it once under "Sitewide" and take it out of every page's a11y line and counts.
+const { sitewideA11y, axePagesScanned } = dedupeSitewideA11y(results, SITEWIDE_SHARE);
+log(`a11y: ${sitewideA11y.length} sitewide issue(s) on >=${Math.round(SITEWIDE_SHARE * 100)}% of ${axePagesScanned} scanned pages`);
 
 // ---------------------------------------------------------------- internal link check
 let linkReport = null;
@@ -336,9 +350,10 @@ const manifest = {
   previousRun: prevManifest?.generatedAt || null,
   summary: { pages: results.length, pagesWithFlags: alerts.length, changedPages: changed, newPages, removedPages,
     brokenInternalLinks: linkReport?.broken.length ?? null, linksChecked: linkReport?.checked ?? null,
+    sitewideA11yIssues: sitewideA11y.length, axePagesScanned,
     bannedPhrasePages: results.filter(r => Object.values(r.views).some(v => v.bannedHits?.length)).map(r => r.path) },
-  howToRead: 'Start with summary + alerts. For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. views.*.bannedHits lists banned copy found (phrase, count, snippet).',
-  alerts, linkCheck: linkReport,
+  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. views.*.bannedHits lists banned copy found (phrase, count, snippet).',
+  alerts, sitewideA11y, linkCheck: linkReport,
   pages: results.map(r => ({ path: r.path, slug: r.slug, url: r.url, flags: r.flags,
     files: { fold: `pages/${r.slug}/fold.jpg`, full: `pages/${r.slug}/full.jpg`, desktopFold: `pages/${r.slug}/desktop_fold.jpg`, mobileFold: `pages/${r.slug}/mobile_fold.jpg`, desktopFull: `pages/${r.slug}/desktop_full.jpg`, mobileFull: `pages/${r.slug}/mobile_full.jpg`,
       desktopDiff: r.views.desktop?.diff?.diffFile ? `pages/${r.slug}/${r.views.desktop.diff.diffFile}` : null, mobileDiff: r.views.mobile?.diff?.diffFile ? `pages/${r.slug}/${r.views.mobile.diff.diffFile}` : null },
@@ -352,6 +367,8 @@ let md = `# Site snapshot — ${d8}\n\n`;
 md += `Base: ${BASE} · ${results.length} pages · ${manifest.durationSec}s · previous run: ${manifest.previousRun ? manifest.previousRun.slice(0, 10) : 'none'}\n\n`;
 md += `## Alerts (${alerts.length} pages)\n\n`;
 md += alerts.length ? alerts.map(a => `- **${a.path}**\n${a.flags.map(f => `  - ${f}`).join('\n')}`).join('\n') + '\n' : '- none\n';
+md += `\n## Sitewide accessibility (same element on ≥${Math.round(SITEWIDE_SHARE * 100)}% of ${axePagesScanned} pages — fix once in the layout; excluded from per-page counts)\n\n`;
+md += sitewideA11y.length ? sitewideA11y.map(s => `- **${s.rule}** (${s.impact}) on ${s.pageCount}/${s.pagesScanned} pages — \`${s.target}\`${s.data?.contrastRatio ? ` — contrast ${s.data.contrastRatio} (needs ${s.data.expectedContrastRatio}) ${s.data.fgColor} on ${s.data.bgColor}` : ''}${s.missingFrom.length ? ` — not on: ${s.missingFrom.join(', ')}` : ''}`).join('\n') + '\n' : '- none\n';
 md += `\n## Changes vs previous run\n\n`;
 md += changed.length ? `- Visually changed (≥${T.diffPctWarn}%): ${changed.join(', ')}\n` : '- No page changed more than the threshold\n';
 if (newPages.length) md += `- New pages: ${newPages.join(', ')}\n`;
@@ -366,7 +383,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const card = r => { const d = r.views.desktop || {}, m = r.views.mobile || {}; const dd = r.views.desktop?.diff, md2 = r.views.mobile?.diff; return `
 <section class="card${r.flags.length ? ' flagged' : ''}" id="${esc(r.slug)}">
  <h2><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.path)}</a> <small>${esc(d.title || '')}</small></h2>
- <div class="meta">HTTP ${d.status}/${m.status} · load ${d.loadMs}/${m.loadMs} ms · ${d.words} words · ${d.h1s?.length} H1${dd ? ` · diff ${dd.pctChanged}% / ${md2?.pctChanged ?? '–'}%` : ''}</div>
+ <div class="meta">HTTP ${d.status}/${m.status} · load ${d.loadMs}/${m.loadMs} ms · ${d.words} words · ${d.h1s?.length} H1${d.axe?.byImpact ? ` · a11y ${d.axe.byImpact.critical || 0}/${d.axe.byImpact.serious || 0}` : ''}${dd ? ` · diff ${dd.pctChanged}% / ${md2?.pctChanged ?? '–'}%` : ''}</div>
  ${r.flags.length ? `<ul class="flags">${r.flags.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
  <a href="pages/${r.slug}/fold.jpg"><img loading="lazy" src="pages/${r.slug}/fold.jpg" alt="${esc(r.path)} above the fold, desktop and mobile"></a>
  <div class="links"><a href="pages/${r.slug}/desktop_full.jpg">desktop full</a><a href="pages/${r.slug}/mobile_full.jpg">mobile full</a><a href="pages/${r.slug}/full.jpg">top-of-page pair</a>${dd?.diffFile ? `<a href="pages/${r.slug}/${dd.diffFile}">desktop diff</a>` : ''}${md2?.diffFile ? `<a href="pages/${r.slug}/${md2.diffFile}">mobile diff</a>` : ''}</div>
@@ -375,9 +392,10 @@ const sorted = [...results].sort((a, b) => (b.flags.length > 0) - (a.flags.lengt
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RMA site snapshot ${d8}</title>
 <style>:root{color-scheme:dark}body{font:15px/1.45 system-ui,-apple-system,sans-serif;margin:0;padding:16px;background:#0f1115;color:#e6e8ee}h1{font-size:20px;margin:0 0 4px}.sum{color:#9aa3b2;margin-bottom:18px}.sum a{color:#8ab4ff}
 .card{background:#171a21;border:1px solid #262b36;border-radius:12px;padding:14px;margin:0 0 16px}.card.flagged{border-color:#b7791f}h2{font-size:16px;margin:0 0 6px;word-break:break-all}h2 a{color:#e6e8ee;text-decoration:none}h2 small{display:block;color:#9aa3b2;font-weight:400;font-size:13px}
-.meta{color:#9aa3b2;font-size:13px;margin-bottom:8px}.flags{margin:0 0 10px;padding-left:18px;color:#f6c177;font-size:13px}img{width:100%;height:auto;border-radius:8px;border:1px solid #262b36;background:#fff}.links{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:13px}.links a{color:#8ab4ff}</style></head><body>
+.meta{color:#9aa3b2;font-size:13px;margin-bottom:8px}.flags{margin:0 0 10px;padding-left:18px;color:#f6c177;font-size:13px}.card.sitewide{border-color:#5b8def}.card.sitewide .flags{color:#c3d4ff}code{font-size:12px;color:#c9d1d9}img{width:100%;height:auto;border-radius:8px;border:1px solid #262b36;background:#fff}.links{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:13px}.links a{color:#8ab4ff}</style></head><body>
 <h1>rma-engineering.com — snapshot ${d8}</h1>
-<div class="sum">${results.length} pages · ${alerts.length} flagged · ${changed.length} changed vs previous${linkReport ? ` · ${linkReport.broken.length} broken internal links` : ''} · <a href="report.md">report.md</a> · <a href="manifest.json">manifest.json</a><br>Flagged pages are listed first. Each image shows desktop (1440) and mobile (390) above the fold.</div>
+<div class="sum">${results.length} pages · ${alerts.length} flagged · ${changed.length} changed vs previous${linkReport ? ` · ${linkReport.broken.length} broken internal links` : ''} · ${sitewideA11y.length} sitewide a11y · <a href="report.md">report.md</a> · <a href="manifest.json">manifest.json</a><br>Flagged pages are listed first. Each image shows desktop (1440) and mobile (390) above the fold.</div>
+${sitewideA11y.length ? `<section class="card sitewide"><h2>Sitewide accessibility <small>same element on ≥${Math.round(SITEWIDE_SHARE * 100)}% of ${axePagesScanned} pages — fix once in the layout; not repeated on the page cards below</small></h2><ul class="flags">${sitewideA11y.map(s => `<li><b>${esc(s.rule)}</b> (${esc(s.impact)}) on ${s.pageCount}/${s.pagesScanned} pages — <code>${esc(s.target)}</code>${s.data?.contrastRatio ? ` — contrast ${esc(s.data.contrastRatio)} (needs ${esc(s.data.expectedContrastRatio)})` : ''}${s.missingFrom.length ? ` — not on: ${esc(s.missingFrom.join(', '))}` : ''}</li>`).join('')}</ul></section>` : ''}
 ${sorted.map(card).join('\n')}
 </body></html>`;
 await fs.writeFile(path.join(OUT, 'index.html'), html);

@@ -25,6 +25,7 @@ print('generated',m['generatedAt'],'| previous',m['previousRun'],'| pages',m['su
 print('flagged',m['summary']['pagesWithFlags'],'| changed',m['summary']['changedPages'],'| new',m['summary']['newPages'],'| removed',m['summary']['removedPages'])
 print('broken internal links',m['summary']['brokenInternalLinks'])
 for a in m['alerts']: print('\n',a['path']); [print('   -',f) for f in a['flags']]
+for s in m.get('sitewideA11y',[]): print('\nSITEWIDE',s['rule'],s['impact'],s['pageCount'],'/',s['pagesScanned'],s['target'])
 PY
 ```
 
@@ -90,7 +91,8 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | page height change | ≥ 10% |
 | oversized image | served at > 2× its displayed width |
 | thin page | < 120 words |
-| a11y | any critical or serious axe violation |
+| a11y | any critical or serious axe violation left after the sitewide dedupe |
+| sitewide a11y | same (rule, selector) on ≥50% of scanned pages — listed once in `sitewideA11y`, excluded from per-page counts |
 | banned phrase | any of pages.config.json `bannedPhrases` in visible text (case-insensitive), unless an `allowPhrases` entry is within 40 chars |
 
 ## If the manifest fetch fails

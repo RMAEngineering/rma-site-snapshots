@@ -36,5 +36,5 @@
     "[?&]_rsc="
   ],
   "linkCheck": { "enabled": true, "maxLinks": 400, "concurrency": 8 },
-  "axe": { "enabled": true, "tags": ["wcag2a", "wcag2aa"] }
+  "axe": { "enabled": true, "tags": ["wcag2a", "wcag2aa"], "sitewideShare": 0.5 }
 }

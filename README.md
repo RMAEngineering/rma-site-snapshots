@@ -19,6 +19,7 @@ Runs every Monday 7am ET, on demand with one click, and (optional) automatically
 | Links | every internal link on the site fetched; 404s listed; suspicious hrefs (`#`, `&`, empty) |
 | Images | oversized images (served at >2× display width), missing alt |
 | Accessibility | axe-core WCAG 2.0/2.1 A+AA scan per page (critical/serious counts, top rules) |
+| Sitewide a11y | an axe (rule, selector) pair failing on ≥50% of scanned pages is listed once under "Sitewide" and removed from the per-page counts and flags |
 | Copy | `bannedPhrases` (e.g. "10+ years", "12 hours", the old info@ email, "A+") found in a page's visible text, with the matching snippet; `allowPhrases` carve out legitimate uses |
 | Change | pixel diff vs previous run (% changed, page height change), new/removed pages |
 
@@ -60,6 +61,8 @@ Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions,
 `ignoreAbortedRequests` lists URL patterns whose `net::ERR_ABORTED` failures are not flagged: Google Ads/GA beacons, Meta Pixel, HubSpot tracking, Vercel Analytics and Next.js `_rsc` prefetches. Browsers cancel these routinely when a page moves on, so they say nothing about the site. Only *aborted* requests are skipped. A 4xx/5xx or any other network error on the same URLs is still flagged. The per-view count of skipped requests is in the manifest as `ignoredAbortedRequests`.
 
 `bannedPhrases` is copy that must never appear on the site (stale claims, the retired info@ address, the wrong BBB grade). Each page's visible text (`document.body.innerText`, so hidden drawers and JSON-LD are excluded) is checked case-insensitively at both viewports; a hit produces one flag per phrase with the count and a snippet, and the page is listed in `summary.bannedPhrasePages`. `allowPhrases` are legitimate uses: a banned match is ignored when an allow phrase appears within 40 characters of it — e.g. `"12-hour time zone"` keeps the tariffs post's "12-hour time zone gap" from tripping `"12-hour"`. For a one-off test, `BANNED_PHRASES_EXTRA="since 2020"` adds phrases for that run only.
+
+`axe.sitewideShare` (default 0.5) is the share of scanned pages on which the same axe (rule, selector) pair must fail to count as sitewide. Sitewide items appear once (manifest `sitewideA11y`, the "Sitewide accessibility" section of report.md, the blue card at the top of the gallery) and are removed from every page's a11y counts and flag; the untouched totals stay in `views.desktop.axe.totalByImpact` / `sitewideNodes`. A pair must also be on at least 2 pages (sitewide means repeated), so a one- or two-page run cannot promote a node seen once.
 
 ## Running locally
 
