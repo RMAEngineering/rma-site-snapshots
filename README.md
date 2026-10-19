@@ -23,6 +23,7 @@ Runs every Monday 7am ET, on demand with one click, and (optional) automatically
 | Sitewide a11y | an axe (rule, selector) pair failing on ≥50% of scanned pages is listed once under "Sitewide" and removed from the per-page counts and flags |
 | Copy | `bannedPhrases` (e.g. "10+ years", "12 hours", the old info@ email, "A+") found in a page's visible text, with the matching snippet; `allowPhrases` carve out legitimate uses |
 | Change | pixel diff vs previous run (% changed, page height change), new/removed pages |
+| Deploy skew | a failed first-party `/_next/static` chunk (404 or network error) is retried once in a fresh browser context; flagged "chunk 404 — possible deploy skew" only if it recurs, otherwise just recorded (`retried`, `summary.retriedViews`) |
 
 ## One-time setup (≈10 minutes)
 

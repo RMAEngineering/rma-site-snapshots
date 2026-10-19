@@ -95,6 +95,7 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | a11y | any critical or serious axe violation left after the sitewide dedupe |
 | sitewide a11y | same (rule, selector) on ≥50% of scanned pages — listed once in `sitewideA11y`, excluded from per-page counts |
 | banned phrase | any of pages.config.json `bannedPhrases` in visible text (case-insensitive), unless an `allowPhrases` entry is within 40 chars |
+| chunk 404 — possible deploy skew | a first-party `/_next/static` request failed twice (once more in a fresh browser context); a one-off failure is only recorded in `summary.retriedViews` |
 
 ## If the manifest fetch fails
 

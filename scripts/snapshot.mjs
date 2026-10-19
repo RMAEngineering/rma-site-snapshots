@@ -9,6 +9,7 @@
 //   PREV_DIR   previous run folder for diffs (default previous/latest; optional)
 //   ONLY_PAGES comma-separated paths to limit the run (optional)
 //   BANNED_PHRASES_EXTRA  comma-separated phrases added to pages.config.json bannedPhrases for this run (test hook)
+//   SIMULATE_CHUNK_FAIL   once|always — fail the first /_next/static/chunks/*.js request to exercise the retry (test hook)
 //
 // Outputs:
 //   manifest.json            machine-readable results (Claude reads this first)
@@ -46,6 +47,7 @@ const BANNED = [...(cfg.bannedPhrases || []), ...(process.env.BANNED_PHRASES_EXT
 const ALLOW = cfg.allowPhrases || [];
 // an axe (rule, selector) pair failing on at least this share of scanned pages is reported once as "sitewide"
 const SITEWIDE_SHARE = cfg.axe?.sitewideShare ?? 0.5;
+const isChunkUrl = u => u.startsWith(BASE + '/_next/static/');   // first-party Next.js build asset (deploy skew shows up here)
 const startedAt = new Date();
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -204,84 +206,99 @@ for (const p of pages) {
   const entry = { path: p, slug, url: BASE + p, views: {}, flags: [] };
 
   for (const [vname, v] of Object.entries(cfg.viewports)) {
-    const context = await browser.newContext({
-      viewport: { width: v.width, height: v.height }, deviceScaleFactor: v.scale,
-      isMobile: !!v.mobile, hasTouch: !!v.mobile, userAgent: v.userAgent, locale: 'en-US', timezoneId: 'America/New_York',
-    });
-    const page = await context.newPage();
-    // LCP is only delivered to a PerformanceObserver (performance.getEntriesByType never returns it); install before navigation
-    await page.addInitScript(() => {
-      try {
-        new PerformanceObserver(list => {
-          for (const e of list.getEntries()) { window.__lcp = e.startTime; window.__lcpEl = `${e.element?.tagName || '?'}${e.url ? ' ' + e.url.slice(0, 80) : ''}`; }
-        }).observe({ type: 'largest-contentful-paint', buffered: true });
-      } catch { /* unsupported engine */ }
-    });
-    const consoleErrors = [], failed = []; let ignoredAborted = 0;
-    page.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.location()?.url || '')) consoleErrors.push(m.text().slice(0, 160)); });
-    page.on('response', r => { if (r.status() >= 400 && !/favicon\.ico$/.test(r.url())) failed.push(`${r.status()} ${r.url().slice(0, 120)}`); });
-    page.on('requestfailed', r => {
-      const err = r.failure()?.errorText || '';
-      if (err === 'net::ERR_ABORTED' && IGNORE_ABORTED.some(re => re.test(r.url()))) { ignoredAborted++; return; }
-      failed.push(`FAILED ${err} ${r.url().slice(0, 120)}`);
-    });
-    const t0 = Date.now(); let status = 0;
-    try {
-      const resp = await page.goto(entry.url, { waitUntil: 'networkidle', timeout: 60000 });
-      status = resp ? resp.status() : 0;
-    } catch (e) {
-      consoleErrors.push('goto: ' + e.message.slice(0, 120));
-      try { const resp = await page.goto(entry.url, { waitUntil: 'load', timeout: 60000 }); status = resp ? resp.status() : 0; } catch {}
-    }
-    const loadMs = Date.now() - t0;
-    // LCP: short settle for the observer callback, read BEFORE the autoscroll — programmatic scrolling does not stop LCP
-    // reporting, so lazy content painted into the viewport during the scroll would otherwise register as a later "LCP"
-    await page.waitForTimeout(400);
-    const lcp = await page.evaluate(() => ({ ms: typeof window.__lcp === 'number' ? Math.round(window.__lcp) : null, el: window.__lcpEl || null })).catch(() => ({ ms: null, el: null }));
-    // trigger lazy content, then return to top
-    const autoscroll = () => page.evaluate(async () => { await new Promise(res => { let y = 0; const step = () => { window.scrollBy(0, 700); y += 700; if (y < document.body.scrollHeight + 700) setTimeout(step, 90); else { window.scrollTo(0, 0); setTimeout(res, 350); } }; step(); }); });
-    let m;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        await autoscroll();
-        await page.waitForTimeout(600);
-        m = await page.evaluate(pageMetrics, { ctaPatterns: cfg.ctaPatterns, vw: v.width, bannedPhrases: BANNED, allowPhrases: ALLOW });
-        break;
-      } catch (e) { // client-side navigation/redirect mid-measure: wait and retry once
-        consoleErrors.push('measure: ' + e.message.slice(0, 100));
-        await page.waitForLoadState('load').catch(() => {});
-        await page.waitForTimeout(1500);
+    let firstAttemptChunkFailures = null;              // set when pass 1 saw a first-party /_next/static failure
+    for (let pass = 1; pass <= 2; pass++) {            // pass 2 only happens after a chunk failure, in a fresh context
+      const context = await browser.newContext({
+        viewport: { width: v.width, height: v.height }, deviceScaleFactor: v.scale,
+        isMobile: !!v.mobile, hasTouch: !!v.mobile, userAgent: v.userAgent, locale: 'en-US', timezoneId: 'America/New_York',
+      });
+      const page = await context.newPage();
+      // LCP is only delivered to a PerformanceObserver (performance.getEntriesByType never returns it); install before navigation
+      await page.addInitScript(() => {
+        try {
+          new PerformanceObserver(list => {
+            for (const e of list.getEntries()) { window.__lcp = e.startTime; window.__lcpEl = `${e.element?.tagName || '?'}${e.url ? ' ' + e.url.slice(0, 80) : ''}`; }
+          }).observe({ type: 'largest-contentful-paint', buffered: true });
+        } catch { /* unsupported engine */ }
+      });
+      // test hook for the chunk-retry path: SIMULATE_CHUNK_FAIL=once (fails pass 1 only) | always (recurs on the retry)
+      if (process.env.SIMULATE_CHUNK_FAIL && (process.env.SIMULATE_CHUNK_FAIL === 'always' || pass === 1)) {
+        let done = false;
+        await page.route(/\/_next\/static\/chunks\/[^?]+\.js(\?|$)/, route => { if (done) return route.continue(); done = true; return route.abort('failed'); });
       }
-    }
-    if (!m) m = { title: '', metaDescLen: 0, canonical: '', robots: '', ogImage: false, h1s: [], h2s: [], words: 0, cta: {}, suspiciousLinks: [], internalLinks: [], externalLinkCount: 0, overflow: false, overflowEls: [], imgCount: 0, noAlt: 0, oversized: [], brokenImgs: [], fixed: [], smallTap: 0, interactive: 0, forms: 0, inputs: 0, foldText: [], docH: 0, ttfbMs: null, domContentLoadedMs: null, bannedHits: [] };
-    m.internalLinks.forEach(h => allInternal.add(h));
-
-    let axe = null;
-    // real responses only: status 0 (goto failed) would scan Chromium's error page and pollute the sitewide denominator
-    if (AxeBuilder && cfg.axe?.enabled && vname === 'desktop' && status >= 200 && status < 400) {
+      const consoleErrors = [], failed = [], chunkFails = []; let ignoredAborted = 0;
+      page.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.location()?.url || '')) consoleErrors.push(m.text().slice(0, 160)); });
+      page.on('response', r => { if (r.status() >= 400 && !/favicon\.ico$/.test(r.url())) { const s = `${r.status()} ${r.url().slice(0, 120)}`; failed.push(s); if (isChunkUrl(r.url())) chunkFails.push(s); } });
+      page.on('requestfailed', r => {
+        const err = r.failure()?.errorText || '';
+        if (err === 'net::ERR_ABORTED' && IGNORE_ABORTED.some(re => re.test(r.url()))) { ignoredAborted++; return; }
+        const s = `FAILED ${err} ${r.url().slice(0, 120)}`; failed.push(s);
+        // an aborted chunk is the fallback goto cancelling in-flight requests, not a missing asset: no retry for it
+        if (isChunkUrl(r.url()) && err !== 'net::ERR_ABORTED') chunkFails.push(s);
+      });
+      const t0 = Date.now(); let status = 0;
       try {
-        const r = await new AxeBuilder({ page }).withTags(cfg.axe.tags || ['wcag2a', 'wcag2aa']).analyze();
-        // one item per failing node; (rule, target) is the key the sitewide pass after the page loop dedupes on
-        const items = r.violations.flatMap(vi => vi.nodes.map(n => ({
-          rule: vi.id, impact: vi.impact || 'minor', help: vi.help,
-          target: Array.isArray(n.target) ? n.target.flat(Infinity).join(' ') : String(n.target),
-          data: (n.any?.[0] || n.all?.[0] || n.none?.[0] || {}).data ?? null,
-          html: (n.html || '').slice(0, 160),
-        })));
-        axe = { violations: r.violations.length, nodes: items.length, ...summarizeAxe(items), items };   // page-only numbers substituted after the loop
-      } catch (e) { axe = { error: e.message.slice(0, 120) }; }
+        const resp = await page.goto(entry.url, { waitUntil: 'networkidle', timeout: 60000 });
+        status = resp ? resp.status() : 0;
+      } catch (e) {
+        consoleErrors.push('goto: ' + e.message.slice(0, 120));
+        try { const resp = await page.goto(entry.url, { waitUntil: 'load', timeout: 60000 }); status = resp ? resp.status() : 0; } catch {}
+      }
+      const loadMs = Date.now() - t0;
+      // LCP: short settle for the observer callback, read BEFORE the autoscroll — programmatic scrolling does not stop LCP
+      // reporting, so lazy content painted into the viewport during the scroll would otherwise register as a later "LCP"
+      await page.waitForTimeout(400);
+      const lcp = await page.evaluate(() => ({ ms: typeof window.__lcp === 'number' ? Math.round(window.__lcp) : null, el: window.__lcpEl || null })).catch(() => ({ ms: null, el: null }));
+      // trigger lazy content, then return to top
+      const autoscroll = () => page.evaluate(async () => { await new Promise(res => { let y = 0; const step = () => { window.scrollBy(0, 700); y += 700; if (y < document.body.scrollHeight + 700) setTimeout(step, 90); else { window.scrollTo(0, 0); setTimeout(res, 350); } }; step(); }); });
+      let m;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await autoscroll();
+          await page.waitForTimeout(600);
+          m = await page.evaluate(pageMetrics, { ctaPatterns: cfg.ctaPatterns, vw: v.width, bannedPhrases: BANNED, allowPhrases: ALLOW });
+          break;
+        } catch (e) { // client-side navigation/redirect mid-measure: wait and retry once
+          consoleErrors.push('measure: ' + e.message.slice(0, 100));
+          await page.waitForLoadState('load').catch(() => {});
+          await page.waitForTimeout(1500);
+        }
+      }
+      if (!m) m = { title: '', metaDescLen: 0, canonical: '', robots: '', ogImage: false, h1s: [], h2s: [], words: 0, cta: {}, suspiciousLinks: [], internalLinks: [], externalLinkCount: 0, overflow: false, overflowEls: [], imgCount: 0, noAlt: 0, oversized: [], brokenImgs: [], fixed: [], smallTap: 0, interactive: 0, forms: 0, inputs: 0, foldText: [], docH: 0, ttfbMs: null, domContentLoadedMs: null, bannedHits: [] };
+      m.internalLinks.forEach(h => allInternal.add(h));
+
+      let axe = null;
+      // real responses only: status 0 (goto failed) would scan Chromium's error page and pollute the sitewide denominator
+      if (AxeBuilder && cfg.axe?.enabled && vname === 'desktop' && status >= 200 && status < 400) {
+        try {
+          const r = await new AxeBuilder({ page }).withTags(cfg.axe.tags || ['wcag2a', 'wcag2aa']).analyze();
+          // one item per failing node; (rule, target) is the key the sitewide pass after the page loop dedupes on
+          const items = r.violations.flatMap(vi => vi.nodes.map(n => ({
+            rule: vi.id, impact: vi.impact || 'minor', help: vi.help,
+            target: Array.isArray(n.target) ? n.target.flat(Infinity).join(' ') : String(n.target),
+            data: (n.any?.[0] || n.all?.[0] || n.none?.[0] || {}).data ?? null,
+            html: (n.html || '').slice(0, 160),
+          })));
+          axe = { violations: r.violations.length, nodes: items.length, ...summarizeAxe(items), items };   // page-only numbers substituted after the loop
+        } catch (e) { axe = { error: e.message.slice(0, 120) }; }
+      }
+
+      const foldPng = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: v.width, height: v.height } });
+      const fullPng = await page.screenshot({ type: 'png', fullPage: true });
+      await toJpeg(foldPng, path.join(dir, `${vname}_fold.jpg`), 74);
+      await toJpeg(fullPng, path.join(dir, `${vname}_full.jpg`), 62);
+
+      const diff = await diffImages(path.join(dir, `${vname}_full.jpg`), path.join(PREV, 'pages', slug, `${vname}_full.jpg`), path.join(dir, `${vname}_diff.jpg`), v.mobile ? 390 : 720);
+
+      // chunkFailures non-empty on the final view <=> the failure recurred on the retry; retried + empty <=> transient
+      const chunkFailures = [...new Set(chunkFails)].slice(0, 4);
+      entry.views[vname] = { status, loadMs, consoleErrors: consoleErrors.slice(0, 6), failedRequests: [...new Set(failed)].slice(0, 8), ignoredAbortedRequests: ignoredAborted,
+        retried: pass > 1, chunkFailures, firstAttemptChunkFailures, ...m, lcpMs: lcp.ms, lcpEl: lcp.el, axe, diff };
+      log(`${p} ${vname} ${status} ${loadMs}ms lcp=${lcp.ms ?? '–'} h=${m.docH} words=${m.words}${m.overflow ? ' OVERFLOW' : ''}${diff ? ` diff=${diff.pctChanged}%` : ''}${chunkFailures.length ? ` CHUNK-FAIL${pass > 1 ? ' (recurred)' : ''}` : ''}`);
+      await context.close();
+      if (chunkFailures.length && pass === 1) { firstAttemptChunkFailures = chunkFailures; log(`${p} ${vname}: first-party /_next/static failure — retrying once in a fresh context`); continue; }
+      break;
     }
-
-    const foldPng = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: v.width, height: v.height } });
-    const fullPng = await page.screenshot({ type: 'png', fullPage: true });
-    await toJpeg(foldPng, path.join(dir, `${vname}_fold.jpg`), 74);
-    await toJpeg(fullPng, path.join(dir, `${vname}_full.jpg`), 62);
-
-    const diff = await diffImages(path.join(dir, `${vname}_full.jpg`), path.join(PREV, 'pages', slug, `${vname}_full.jpg`), path.join(dir, `${vname}_diff.jpg`), v.mobile ? 390 : 720);
-
-    entry.views[vname] = { status, loadMs, consoleErrors: consoleErrors.slice(0, 6), failedRequests: [...new Set(failed)].slice(0, 8), ignoredAbortedRequests: ignoredAborted, ...m, lcpMs: lcp.ms, lcpEl: lcp.el, axe, diff };
-    log(`${p} ${vname} ${status} ${loadMs}ms lcp=${lcp.ms ?? '–'} h=${m.docH} words=${m.words}${m.overflow ? ' OVERFLOW' : ''}${diff ? ` diff=${diff.pctChanged}%` : ''}`);
-    await context.close();
   }
 
   // composites for Claude: fold (desktop | mobile) and top-of-page (desktop@800 | mobile@400)
@@ -304,9 +321,12 @@ for (const p of pages) {
     if (vw.loadMs > T.loadMsWarn) f.push(`slow load ${vw.loadMs}ms (${vn})`);
     if (T.lcpMsWarn && vw.lcpMs > T.lcpMsWarn) f.push(`slow LCP ${vw.lcpMs}ms (${vn}${vw.lcpEl ? ', ' + vw.lcpEl : ''})`);
     if (vw.overflow) f.push(`horizontal overflow on ${vn}: ${vw.overflowEls.join(', ')}`);
-    const realFails = vw.failedRequests.filter(x => !(isExpected404 && x.includes(p)));
+    // first-party chunk failures have their own flag below (only when they recurred on the retry), so keep them out of the generic lists
+    const realFails = vw.failedRequests.filter(x => !(isExpected404 && x.includes(p)) && !x.includes(BASE + '/_next/static/'));
     if (realFails.length) f.push(`failed resources (${vn}): ${realFails.slice(0, 3).join(' · ')}`);
-    if (vw.consoleErrors.filter(x => !x.startsWith('Failed to load resource') || !isExpected404).length && !isExpected404) f.push(`console errors (${vn}): ${vw.consoleErrors.slice(0, 2).join(' · ')}`);
+    if (vw.chunkFailures?.length) f.push(`chunk 404 — possible deploy skew (${vn}, recurred on retry): ${vw.chunkFailures.slice(0, 2).join(' · ')}`);
+    const consoleReal = vw.consoleErrors.filter(x => !(x.startsWith('Failed to load resource') && (isExpected404 || vw.chunkFailures?.length)));
+    if (consoleReal.length && !isExpected404) f.push(`console errors (${vn}): ${consoleReal.slice(0, 2).join(' · ')}`);
     if (vw.suspiciousLinks.length) f.push(`suspicious hrefs (${vn}): ${vw.suspiciousLinks.map(s => JSON.stringify(s.href)).slice(0, 3).join(', ')}`);
     if (vw.brokenImgs.length) f.push(`broken images (${vn}): ${vw.brokenImgs.length}`);
     if (vw.diff && vw.diff.pctChanged >= T.diffPctWarn) f.push(`changed ${vw.diff.pctChanged}% vs previous (${vn})`);
@@ -362,8 +382,10 @@ const manifest = {
   summary: { pages: results.length, pagesWithFlags: alerts.length, changedPages: changed, newPages, removedPages,
     brokenInternalLinks: linkReport?.broken.length ?? null, linksChecked: linkReport?.checked ?? null,
     sitewideA11yIssues: sitewideA11y.length, axePagesScanned,
-    bannedPhrasePages: results.filter(r => Object.values(r.views).some(v => v.bannedHits?.length)).map(r => r.path) },
-  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. views.*.lcpMs is Largest Contentful Paint in ms (lcpEl = the element); views.*.bannedHits lists banned copy found (phrase, count, snippet).',
+    bannedPhrasePages: results.filter(r => Object.values(r.views).some(v => v.bannedHits?.length)).map(r => r.path),
+    retriedViews: results.flatMap(r => Object.entries(r.views).filter(([, v]) => v.retried).map(([vn]) => `${r.path} (${vn})`)),
+    chunkSkewViews: results.flatMap(r => Object.entries(r.views).filter(([, v]) => v.chunkFailures?.length).map(([vn]) => `${r.path} (${vn})`)) },
+  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. views.*.lcpMs is Largest Contentful Paint in ms (lcpEl = the element); views.*.bannedHits lists banned copy found (phrase, count, snippet); views.*.retried means a first-party /_next/static failure was retried once in a fresh context (chunkFailures non-empty = it recurred, see summary.chunkSkewViews).',
   alerts, sitewideA11y, linkCheck: linkReport,
   pages: results.map(r => ({ path: r.path, slug: r.slug, url: r.url, flags: r.flags,
     files: { fold: `pages/${r.slug}/fold.jpg`, full: `pages/${r.slug}/full.jpg`, desktopFold: `pages/${r.slug}/desktop_fold.jpg`, mobileFold: `pages/${r.slug}/mobile_fold.jpg`, desktopFull: `pages/${r.slug}/desktop_full.jpg`, mobileFull: `pages/${r.slug}/mobile_full.jpg`,
