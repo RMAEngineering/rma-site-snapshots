@@ -9,11 +9,12 @@
 export const isIgnoredFailedRequest = (url, substrings) => (substrings || []).some(s => s && String(url || '').includes(s));
 
 // ---------------------------------------------------------------- font check
-// next/font renders the body family as `"__Inter_d8ebd1", "__Inter_Fallback_d8ebd1", system-ui, ...`: the first entry is
-// the loaded face, the fallback entry only comes first when the real font is missing. On Oct 19 a stale font class left
-// --font-inter undefined and the computed family was "Times New Roman" for 30 minutes — that is what this check catches.
-// Only the FIRST family is compared, normalized: surrounding quotes, a leading "__" and a trailing "_<6 hex>" are
-// stripped, so `"__Inter_d8ebd1"` -> `Inter` and `"Times New Roman"` -> `Times New Roman`.
+// next/font renders the body family as `__Inter_d8ebd1, __Inter_Fallback_d8ebd1, system-ui, ...` (Chromium leaves the
+// idents unquoted; other engines quote them): the first entry is the loaded face, the fallback entry only comes first
+// when the real font is missing. On Oct 19 a stale font class left --font-inter undefined and the computed family was
+// "Times New Roman" for 30 minutes — that is what this check catches. Only the FIRST family is compared, normalized:
+// surrounding quotes (if any), a leading "__" and a trailing "_<6 hex>" are stripped, so `"__Inter_d8ebd1"` -> `Inter`
+// and `"Times New Roman"` -> `Times New Roman`.
 export function firstFontFamily(raw) {
   const first = String(raw || '').split(',')[0].trim();
   return first.replace(/^["']|["']$/g, '').trim().replace(/^__/, '').replace(/_[0-9a-f]{6}$/i, '').trim();

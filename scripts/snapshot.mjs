@@ -12,6 +12,8 @@
 //   SIMULATE_CHUNK_FAIL   once|always — fail the first /_next/static/chunks/*.js request to exercise the retry (test hook)
 //   EXPECTED_FONT         overrides pages.config.json expectedFont for this run (test hook: EXPECTED_FONT=Georgia must flag every page)
 //   SIMULATE_CHANGED      1 — mark every view as changed (pctChanged forced to 100) to exercise the sitewide-change rollup (test hook)
+//   SIMULATE_FAILED_REQUEST  <url> — every view fetches this URL once after load and the request is answered 400 (test hook for the
+//                            failed-request carve-out: a URL on ignoreFailedRequests must only count in ignoredFailedRequests, any other URL must flag)
 //
 // Outputs:
 //   manifest.json            machine-readable results (Claude reads this first)
@@ -167,7 +169,7 @@ function pageMetrics({ ctaPatterns, vw, bannedPhrases, allowPhrases }) {
     forms: document.querySelectorAll('form').length,
     inputs: document.querySelectorAll('input:not([type=hidden]),textarea,select').length,
     foldText, docH: document.documentElement.scrollHeight,
-    // raw computed family, e.g. `"__Inter_d8ebd1", "__Inter_Fallback_d8ebd1", system-ui, ...`; normalized + compared in checks.mjs
+    // raw computed family, e.g. `__Inter_d8ebd1, __Inter_Fallback_d8ebd1, system-ui, sans-serif`; normalized + compared in checks.mjs
     fontFamily: getComputedStyle(document.body).fontFamily,
     ttfbMs: nav ? Math.round(nav.responseStart) : null,
     domContentLoadedMs: nav ? Math.round(nav.domContentLoadedEventEnd) : null,
@@ -240,8 +242,15 @@ for (const p of pages) {
         let done = false;
         await page.route(/\/_next\/static\/chunks\/[^?]+\.js(\?|$)/, route => { if (done) return route.continue(); done = true; return route.abort('failed'); });
       }
+      // test hook for the failed-request carve-out: the page fetches SIMULATE_FAILED_REQUEST once on load and gets a synthetic 400
+      if (process.env.SIMULATE_FAILED_REQUEST) {
+        const simUrl = process.env.SIMULATE_FAILED_REQUEST;
+        await page.route(u => u.href.startsWith(simUrl), route => route.fulfill({ status: 400, contentType: 'text/plain', body: 'simulated failure' }));
+        await page.addInitScript(u => { addEventListener('load', () => { const i = new Image(); i.src = u; }); }, simUrl);   // an <img> request: one response event, no CORS follow-up
+      }
       const consoleErrors = [], failed = [], chunkFails = []; let ignoredAborted = 0, ignoredFailed = 0;
-      page.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.location()?.url || '')) consoleErrors.push(m.text().slice(0, 160)); });
+      // "Failed to load resource" console errors carry the resource URL as their location: skip them for favicon and carve-out URLs
+      page.on('console', m => { const u = m.location()?.url || ''; if (m.type() === 'error' && !/favicon/.test(u) && !isIgnoredFailedRequest(u, IGNORE_FAILED)) consoleErrors.push(m.text().slice(0, 160)); });
       page.on('response', r => {
         if (r.status() < 400 || /favicon\.ico$/.test(r.url())) return;
         if (isIgnoredFailedRequest(r.url(), IGNORE_FAILED)) { ignoredFailed++; return; }
