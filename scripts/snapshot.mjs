@@ -27,7 +27,7 @@ import fs from 'node:fs/promises';
 import fss from 'node:fs';
 import path from 'node:path';
 import { summarizeAxe, dedupeSitewideA11y } from './a11y.mjs';
-import { firstFontFamily, fontFlags, changedFlag, rollupSitewideChange } from './checks.mjs';
+import { firstFontFamily, fontFlags, changedFlag, rollupSitewideChange, isIgnoredFailedRequest } from './checks.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -47,6 +47,8 @@ const ONLY = (process.env.ONLY_PAGES || '').split(',').map(s => s.trim()).filter
 const T = cfg.thresholds;
 // analytics/ad beacons and Next.js RSC prefetches are routinely cancelled when the page moves on; not a site fault
 const IGNORE_ABORTED = (cfg.ignoreAbortedRequests || []).map(p => new RegExp(p, 'i'));
+// URL substrings whose failures (any status, any error) never flag: the Meta pixel error beacon answers 4xx by design
+const IGNORE_FAILED = cfg.ignoreFailedRequests || [];
 // copy that must never appear on the site (checked case-insensitively against each page's visible text);
 // allowPhrases are legitimate uses: a banned match is ignored when an allow phrase sits within 40 chars of it
 const BANNED = [...(cfg.bannedPhrases || []), ...(process.env.BANNED_PHRASES_EXTRA || '').split(',').map(s => s.trim()).filter(Boolean)];
@@ -238,11 +240,16 @@ for (const p of pages) {
         let done = false;
         await page.route(/\/_next\/static\/chunks\/[^?]+\.js(\?|$)/, route => { if (done) return route.continue(); done = true; return route.abort('failed'); });
       }
-      const consoleErrors = [], failed = [], chunkFails = []; let ignoredAborted = 0;
+      const consoleErrors = [], failed = [], chunkFails = []; let ignoredAborted = 0, ignoredFailed = 0;
       page.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.location()?.url || '')) consoleErrors.push(m.text().slice(0, 160)); });
-      page.on('response', r => { if (r.status() >= 400 && !/favicon\.ico$/.test(r.url())) { const s = `${r.status()} ${r.url().slice(0, 120)}`; failed.push(s); if (isChunkUrl(r.url())) chunkFails.push(s); } });
+      page.on('response', r => {
+        if (r.status() < 400 || /favicon\.ico$/.test(r.url())) return;
+        if (isIgnoredFailedRequest(r.url(), IGNORE_FAILED)) { ignoredFailed++; return; }
+        const s = `${r.status()} ${r.url().slice(0, 120)}`; failed.push(s); if (isChunkUrl(r.url())) chunkFails.push(s);
+      });
       page.on('requestfailed', r => {
         const err = r.failure()?.errorText || '';
+        if (isIgnoredFailedRequest(r.url(), IGNORE_FAILED)) { ignoredFailed++; return; }
         if (err === 'net::ERR_ABORTED' && IGNORE_ABORTED.some(re => re.test(r.url()))) { ignoredAborted++; return; }
         const s = `FAILED ${err} ${r.url().slice(0, 120)}`; failed.push(s);
         // an aborted chunk is the fallback goto cancelling in-flight requests, not a missing asset: no retry for it
@@ -306,7 +313,7 @@ for (const p of pages) {
 
       // chunkFailures non-empty on the final view <=> the failure recurred on the retry; retried + empty <=> transient
       const chunkFailures = [...new Set(chunkFails)].slice(0, 4);
-      entry.views[vname] = { status, loadMs, consoleErrors: consoleErrors.slice(0, 6), failedRequests: [...new Set(failed)].slice(0, 8), ignoredAbortedRequests: ignoredAborted,
+      entry.views[vname] = { status, loadMs, consoleErrors: consoleErrors.slice(0, 6), failedRequests: [...new Set(failed)].slice(0, 8), ignoredAbortedRequests: ignoredAborted, ignoredFailedRequests: ignoredFailed,
         retried: pass > 1, chunkFailures, firstAttemptChunkFailures, ...m, lcpMs: lcp.ms, lcpEl: lcp.el, axe, diff };
       log(`${p} ${vname} ${status} ${loadMs}ms lcp=${lcp.ms ?? '–'} h=${m.docH} words=${m.words}${m.overflow ? ' OVERFLOW' : ''}${diff ? ` diff=${diff.pctChanged}%` : ''}${chunkFailures.length ? ` CHUNK-FAIL${pass > 1 ? ' (recurred)' : ''}` : ''}`);
       await context.close();
@@ -410,7 +417,7 @@ const manifest = {
     fontMismatchPages: results.filter(r => fontFlags(r.views, EXPECTED_FONT).length).map(r => r.path),
     retriedViews: results.flatMap(r => Object.entries(r.views).filter(([, v]) => v.retried).map(([vn]) => `${r.path} (${vn})`)),
     chunkSkewViews: results.flatMap(r => Object.entries(r.views).filter(([, v]) => v.chunkFailures?.length).map(([vn]) => `${r.path} (${vn})`)) },
-  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. summary.sitewideChange is non-null when >= ' + Math.round(SITEWIDE_CHANGE_SHARE * 100) + '% of the compared pages changed: one template-level change, reported once; the per-page "changed" flags are dropped (summary.changedPages, views.*.diff and the diff images stay), so review a few representative pages rather than each one. views.*.lcpMs is Largest Contentful Paint in ms (lcpEl = the element); views.*.bannedHits lists banned copy found (phrase, count, snippet); views.*.fontFamily is the raw computed body font-family (next/font renders it as __Inter_<hash>; the page is flagged "font:" when the first family, normalized, does not start with summary.expectedFont, see summary.fontMismatchPages); views.*.retried means a first-party /_next/static failure was retried once in a fresh context (chunkFailures non-empty = it recurred, see summary.chunkSkewViews).',
+  howToRead: 'Start with summary + alerts, then sitewideA11y (template-level axe failures, reported once and excluded from per-page a11y counts; the totals stay in views.desktop.axe.totalByImpact). For each page: pages/<slug>/fold.jpg = desktop|mobile above the fold; pages/<slug>/full.jpg = top 3000px of desktop|mobile full page; *_diff.jpg exists only when the page changed vs the previous run. summary.sitewideChange is non-null when >= ' + Math.round(SITEWIDE_CHANGE_SHARE * 100) + '% of the compared pages changed: one template-level change, reported once; the per-page "changed" flags are dropped (summary.changedPages, views.*.diff and the diff images stay), so review a few representative pages rather than each one. views.*.lcpMs is Largest Contentful Paint in ms (lcpEl = the element); views.*.bannedHits lists banned copy found (phrase, count, snippet); views.*.fontFamily is the raw computed body font-family (next/font renders it as __Inter_<hash>; the page is flagged "font:" when the first family, normalized, does not start with summary.expectedFont, see summary.fontMismatchPages); views.*.retried means a first-party /_next/static failure was retried once in a fresh context (chunkFailures non-empty = it recurred, see summary.chunkSkewViews); views.*.ignoredFailedRequests counts failed requests on the ignoreFailedRequests carve-out list (Meta pixel error beacon), never flagged; ignoredAbortedRequests counts cancelled beacons/prefetches.',
   alerts, sitewideA11y, linkCheck: linkReport,
   pages: results.map(r => ({ path: r.path, slug: r.slug, url: r.url, flags: r.flags,
     files: { fold: `pages/${r.slug}/fold.jpg`, full: `pages/${r.slug}/full.jpg`, desktopFold: `pages/${r.slug}/desktop_fold.jpg`, mobileFold: `pages/${r.slug}/mobile_fold.jpg`, desktopFull: `pages/${r.slug}/desktop_full.jpg`, mobileFull: `pages/${r.slug}/mobile_full.jpg`,

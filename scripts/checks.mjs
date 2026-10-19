@@ -1,6 +1,12 @@
 // rma-site-snapshots — scripts/checks.mjs
-// Pure helpers for the non-axe checks (font family, sitewide-change rollup). Kept out of snapshot.mjs so they can be
-// unit-tested without launching a browser: `npm test`.
+// Pure helpers for the non-axe checks (font family, sitewide-change rollup, failed-request carve-out). Kept out of
+// snapshot.mjs so they can be unit-tested without launching a browser: `npm test`.
+
+// ---------------------------------------------------------------- failed-request carve-out
+// A failed request (any HTTP status >= 400 or any network error) whose URL contains one of the configured substrings is
+// never a site fault and never flags: the Meta pixel's own error beacon (connect.facebook.net/log/error) answers 4xx by
+// design. Plain substring match, case-sensitive. Unlike ignoreAbortedRequests this is not limited to net::ERR_ABORTED.
+export const isIgnoredFailedRequest = (url, substrings) => (substrings || []).some(s => s && String(url || '').includes(s));
 
 // ---------------------------------------------------------------- font check
 // next/font renders the body family as `"__Inter_d8ebd1", "__Inter_Fallback_d8ebd1", system-ui, ...`: the first entry is

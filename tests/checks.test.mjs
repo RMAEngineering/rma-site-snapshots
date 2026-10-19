@@ -2,7 +2,7 @@
 // Unit tests for the pure helpers in scripts/checks.mjs (no browser). Run: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { firstFontFamily, fontMismatch, fontFlags, changedFlag, CHANGED_FLAG_RE, rollupSitewideChange } from '../scripts/checks.mjs';
+import { firstFontFamily, fontMismatch, fontFlags, changedFlag, CHANGED_FLAG_RE, rollupSitewideChange, isIgnoredFailedRequest } from '../scripts/checks.mjs';
 
 const NEXT_INTER = '"__Inter_d8ebd1", "__Inter_Fallback_d8ebd1", system-ui, -apple-system, sans-serif';
 
@@ -90,6 +90,19 @@ test('rollupSitewideChange: a one-page run never claims a sitewide change', () =
   assert.equal(results[0].flags.length, 2);
   assert.equal(rollupSitewideChange([], { share: 0.8 }), null);
   assert.equal(rollupSitewideChange([page('/', null, null), page('/a', null, null)], { share: 0.8 }), null);   // nothing compared
+});
+
+// ---------------------------------------------------------------- failed-request carve-out
+test('isIgnoredFailedRequest is a plain substring match on the URL, independent of status or error', () => {
+  const list = ['connect.facebook.net/log/error'];
+  assert.ok(isIgnoredFailedRequest('https://connect.facebook.net/log/error?id=123&ev=PageView', list));
+  assert.ok(isIgnoredFailedRequest('https://connect.facebook.net/log/error', list));
+  assert.ok(!isIgnoredFailedRequest('https://connect.facebook.net/en_US/fbevents.js', list));
+  assert.ok(!isIgnoredFailedRequest('https://www.facebook.com/tr?id=1', list));
+  assert.ok(!isIgnoredFailedRequest('https://www.rma-engineering.com/_next/static/chunks/app.js', list));
+  assert.ok(!isIgnoredFailedRequest('https://connect.facebook.net/log/error', []));
+  assert.ok(!isIgnoredFailedRequest('https://connect.facebook.net/log/error', undefined));
+  assert.ok(!isIgnoredFailedRequest('https://connect.facebook.net/log/error', ['']));       // an empty entry never matches everything
 });
 
 test('rollupSitewideChange: SIMULATE_CHANGED-style input (every view 100%)', () => {

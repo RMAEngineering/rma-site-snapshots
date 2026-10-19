@@ -12,7 +12,7 @@ Runs every Monday 7am ET, on demand with one click, and (optional) automatically
 
 | Area | What it catches |
 |---|---|
-| Rendering | HTTP status, load time, console errors, failed requests, broken images |
+| Rendering | HTTP status, load time, console errors, failed requests (minus the `ignoreAbortedRequests` / `ignoreFailedRequests` carve-outs), broken images |
 | Speed | Largest Contentful Paint per viewport (PerformanceObserver, with the element), flagged above `lcpMsWarn` |
 | Mobile | horizontal overflow (and which element), tap targets, fixed/sticky bars |
 | Content/SEO | H1 count, meta description length, canonical, robots, thin pages, word count |
@@ -67,6 +67,8 @@ Everything is in `pages.config.json`: which pages (sitemap + extras, exclusions,
 `expectedFont` (default `"Inter"`) is what the body's computed `font-family` must start with. Each view records `getComputedStyle(document.body).fontFamily` as `views.<v>.fontFamily` (raw, e.g. `"__Inter_d8ebd1", "__Inter_Fallback_d8ebd1", system-ui, ...`). Only the **first** family in that list is compared, after normalization: surrounding quotes, a leading `__` and a trailing `_<6 hex>` are stripped, because next/font renders the family as `__Inter_d8ebd1`; so `"__Inter_d8ebd1"` → `Inter`, which starts with `Inter` (case-insensitive) → no flag. When the first family is anything else the page gets one flag per offending family with the viewports that show it: `font: body font-family starts with 'Times New Roman', expected 'Inter' (desktop, mobile)` — exactly what the Oct 19 outage looked like, when a stale font class left `--font-inter` undefined for 30 minutes. `summary.fontMismatchPages` lists the pages, `summary.expectedFont` echoes the value in force. Set `expectedFont` to `""` to disable the check. The normalization lives in `scripts/checks.mjs` (`firstFontFamily`) and is unit-tested.
 
 `ignoreAbortedRequests` lists URL patterns whose `net::ERR_ABORTED` failures are not flagged: Google Ads/GA beacons, Meta Pixel, HubSpot tracking, Vercel Analytics and Next.js `_rsc` prefetches. Browsers cancel these routinely when a page moves on, so they say nothing about the site. Only *aborted* requests are skipped. A 4xx/5xx or any other network error on the same URLs is still flagged. The per-view count of skipped requests is in the manifest as `ignoredAbortedRequests`.
+
+`ignoreFailedRequests` is the stronger carve-out: a failed request whose URL *contains* one of these substrings (plain, case-sensitive) never flags, whatever the status code or network error. The only entry is `connect.facebook.net/log/error`, the Meta pixel's own error beacon, which answers 4xx by design and would otherwise show up as a "failed resources" flag on every page. The per-view count is `ignoredFailedRequests`. Keep this list short: anything on it is invisible to the run.
 
 `bannedPhrases` is copy that must never appear on the site (stale claims, the retired info@ address, the wrong BBB grade). Each page's visible text (`document.body.innerText`, so hidden drawers and JSON-LD are excluded) is checked case-insensitively at both viewports; a hit produces one flag per phrase with the count and a snippet, and the page is listed in `summary.bannedPhrasePages`. `allowPhrases` are legitimate uses: a banned match is ignored when an allow phrase appears within 40 characters of it — e.g. `"12-hour time zone"` keeps the tariffs post's "12-hour time zone gap" from tripping `"12-hour"`. For a one-off test, `BANNED_PHRASES_EXTRA="since 2020"` adds phrases for that run only.
 

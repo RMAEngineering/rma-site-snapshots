@@ -99,6 +99,7 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | sitewide a11y | same (rule, selector) on ≥50% of scanned pages — listed once in `sitewideA11y`, excluded from per-page counts |
 | banned phrase | any of pages.config.json `bannedPhrases` in visible text (case-insensitive), unless an `allowPhrases` entry is within 40 chars |
 | font | the body's computed `font-family` (first family, with next/font's `__` prefix and `_<hash>` suffix stripped) does not start with `expectedFont` = `Inter` — e.g. "Times New Roman" means the Inter font class/variable is missing; raw value in `views.<v>.fontFamily`, pages in `summary.fontMismatchPages` |
+| failed resources | any request with status ≥ 400 or a network error, except cancelled beacons/prefetches on `ignoreAbortedRequests` (`net::ERR_ABORTED` only) and anything whose URL contains an `ignoreFailedRequests` substring (`connect.facebook.net/log/error`, the Meta pixel error beacon — any status; counted in `views.<v>.ignoredFailedRequests`, never flagged) |
 | chunk 404 — possible deploy skew | a first-party `/_next/static` request failed twice (once more in a fresh browser context); a one-off failure is only recorded in `summary.retriedViews` |
 
 ## If the manifest fetch fails
