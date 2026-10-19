@@ -13,6 +13,7 @@
   "composites": { "fullTopPx": 3000, "desktopFullWidth": 800, "mobileFullWidth": 400 },
   "thresholds": {
     "loadMsWarn": 3000,
+    "lcpMsWarn": 2500,
     "diffPctWarn": 3,
     "heightChangeWarn": 0.10,
     "oversizeFactor": 2,

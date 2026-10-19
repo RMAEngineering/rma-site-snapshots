@@ -13,6 +13,7 @@ Runs every Monday 7am ET, on demand with one click, and (optional) automatically
 | Area | What it catches |
 |---|---|
 | Rendering | HTTP status, load time, console errors, failed requests, broken images |
+| Speed | Largest Contentful Paint per viewport (PerformanceObserver, with the element), flagged above `lcpMsWarn` |
 | Mobile | horizontal overflow (and which element), tap targets, fixed/sticky bars |
 | Content/SEO | H1 count, meta description length, canonical, robots, thin pages, word count |
 | CTAs | counts of contact / booking / guide / Reality Check / phone links per page |

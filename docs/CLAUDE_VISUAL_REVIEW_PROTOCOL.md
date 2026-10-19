@@ -87,6 +87,7 @@ Real numbers, not adjectives. If nothing meaningful changed, say so in one line 
 | Flag | Threshold |
 |---|---|
 | slow load | > 3000 ms |
+| slow LCP | > 2500 ms (lab value from the runner, no throttling — use for regressions, not absolutes) |
 | visually changed | ≥ 3% pixels vs previous run |
 | page height change | ≥ 10% |
 | oversized image | served at > 2× its displayed width |
