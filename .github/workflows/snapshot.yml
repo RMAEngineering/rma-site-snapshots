@@ -33,6 +33,8 @@ jobs:
 
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - name: Unit tests
+        run: npm test
 
       - name: Fetch previous snapshot for diffs
         run: |
