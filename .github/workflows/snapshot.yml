@@ -64,6 +64,11 @@ jobs:
         continue-on-error: true     # a Vercel problem must never block the snapshot publish; the script reports it as DATA_GAP
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # Google sources (GA4 + Search Console) are optional: with any of these missing the report says "not configured"
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
           OUT_DIR: out/latest
           HISTORY_DIR: out/history/traffic
         run: node scripts/traffic.mjs

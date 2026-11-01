@@ -6,8 +6,9 @@
   "scripts": {
     "snapshot": "node scripts/snapshot.mjs",
     "snapshot:local": "SITE_URL=http://localhost:8080 node scripts/snapshot.mjs",
-    "test": "node --test tests/checks.test.mjs tests/traffic.test.mjs",
-    "traffic": "node scripts/traffic.mjs"
+    "test": "node --test tests/checks.test.mjs tests/traffic.test.mjs tests/traffic-google.test.mjs",
+    "traffic": "node scripts/traffic.mjs",
+    "google-auth-once": "node scripts/google-auth-once.mjs"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.0",
