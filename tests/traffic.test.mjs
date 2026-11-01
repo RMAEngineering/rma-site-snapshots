@@ -203,13 +203,29 @@ test('CHATGPT_ZERO needs two trailing zero weeks and an 8-week max of at least 3
   assert.equal(f.text, 'CHATGPT_ZERO: chatgpt.com visitors 0, 0 in the last 2 weeks; 8-week max 3 (flag >= 3)');
 });
 
-test('BOT_SPIKE at or above the share; unknown share never flags', () => {
-  assert.deepEqual(codes(computeFlags(series('bot', 0.1, 0.5), cfg)), ['BOT_SPIKE']);
-  assert.deepEqual(codes(computeFlags(series('bot', 0.1, 0.49), cfg)), []);
-  const weeks = series('bot', 0.1, 0.1); weeks[7].botShareNoReferrer = null; weeks[7].noReferrer = null;
-  assert.deepEqual(codes(computeFlags(weeks, cfg)), []);
-  const f = computeFlags(series('bot', 0.1, 0.57), cfg)[0];
-  assert.equal(f.text, 'BOT_SPIKE: non-US share of no-referrer visitors 0.57 (57/100; flag >= 0.5)');
+test('BOT_SPIKE: at or above 1.4x the prior 4-week average, or at or above 0.7 outright; the normal 0.45–0.57 range never fires', () => {
+  assert.deepEqual(codes(computeFlags(series('bot', 0.4, 0.56), cfg)), ['BOT_SPIKE']);     // ratio exactly 1.4, below the absolute line
+  assert.deepEqual(codes(computeFlags(series('bot', 0.4, 0.55), cfg)), []);                // 1.375x
+  assert.deepEqual(codes(computeFlags(series('bot', 0.65, 0.7), cfg)), ['BOT_SPIKE']);     // ratio only 1.08, but 0.7 outright
+  assert.deepEqual(codes(computeFlags(series('bot', 0.65, 0.69), cfg)), []);
+  assert.deepEqual(codes(computeFlags(series('bot', 0.5, 0.7), cfg)), ['BOT_SPIKE']);      // both lines at once
+  // the real Aug 31 – Oct 19 shares (Bot column of the Nov 1 branch run): baseline 0.46, 0.49, 0.45, 0.54, latest 0.567.
+  // The old fixed 0.5 line fired here; 0.567 is 1.17x the average and below 0.7, so now it must not.
+  const real = STARTS.map((ws, i) => mk({ ws, bot: [0.56, 0.48, 0.59, 0.46, 0.49, 0.45, 0.54, 0.567][i] }));
+  assert.deepEqual(codes(computeFlags(real, cfg)), []);
+  // no baseline shares: only the absolute line can fire
+  const noBase = series('bot', 0.1, 0.6); for (const w of noBase.slice(0, 7)) { w.botShareNoReferrer = null; w.noReferrer = null; }
+  assert.deepEqual(codes(computeFlags(noBase, cfg)), []);
+  noBase[7].botShareNoReferrer = 0.75; noBase[7].noReferrer = { total: 100, us: 25, nonUs: 75 };
+  assert.deepEqual(codes(computeFlags(noBase, cfg)), ['BOT_SPIKE']);
+  assert.equal(computeFlags(noBase, cfg)[0].text, 'BOT_SPIKE: non-US share of no-referrer visitors 0.75 (75/100), prior 0-week avg n/a, ratio n/a (flag >= 1.4x avg or >= 0.7)');
+  // unknown latest share never flags
+  const unknown = series('bot', 0.1, 0.1); unknown[7].botShareNoReferrer = null; unknown[7].noReferrer = null;
+  assert.deepEqual(codes(computeFlags(unknown, cfg)), []);
+  const f = computeFlags(series('bot', 0.4, 0.8), cfg)[0];
+  assert.equal(f.text, 'BOT_SPIKE: non-US share of no-referrer visitors 0.8 (80/100), prior 4-week avg 0.4, ratio 2 (flag >= 1.4x avg or >= 0.7)');
+  assert.deepEqual({ latest: f.latest, avg: f.avg, ratio: f.ratio, ratioThreshold: f.ratioThreshold, absoluteThreshold: f.absoluteThreshold, baselineWeeks: f.baselineWeeks },
+    { latest: 0.8, avg: 0.4, ratio: 2, ratioThreshold: 1.4, absoluteThreshold: 0.7, baselineWeeks: 4 });
 });
 
 test('DATA_GAP on a failed query or a week with 0 US visitors; nothing else wrong -> no flags at all', () => {

@@ -25,7 +25,8 @@
     "deepPagesDownRatio": 0.60,
     "adPagesDownRatio": 0.60,
     "trafficUpRatio": 1.40,
-    "botShareSpike": 0.5,
+    "botShareSpikeRatio": 1.4,
+    "botShareSpikeAbsolute": 0.7,
     "chatgptZeroWeeks": 2,
     "chatgptMaxAtLeast": 3
   }

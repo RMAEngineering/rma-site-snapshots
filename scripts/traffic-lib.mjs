@@ -165,10 +165,21 @@ export function computeFlags(weeks, cfg, errors = []) {
     }
     ratioFlag('AD_PAGES_DOWN', 'ad-page visitors', get.adPagesVisitors, T.adPagesDownRatio, 'down');
     ratioFlag('TRAFFIC_UP', 'US visitors', get.usVisitors, T.trafficUpRatio, 'up');
+    // BOT_SPIKE: the newest week's non-US share of no-referrer visitors is at or above `botShareSpikeRatio` x the prior
+    // baseline average, OR at or above `botShareSpikeAbsolute` outright. The normal share here sits at 0.45–0.57 every
+    // week (Singapore/China one-pageview sessions), so a fixed line at 0.5 fired constantly; a jump is the signal.
     const share = latest.botShareNoReferrer;
-    if (typeof share === 'number' && typeof T.botShareSpike === 'number' && share >= T.botShareSpike) {
-      flags.push({ code: 'BOT_SPIKE', latest: share, threshold: T.botShareSpike, nonUs: latest.noReferrer.nonUs, total: latest.noReferrer.total,
-        text: `BOT_SPIKE: non-US share of no-referrer visitors ${share} (${latest.noReferrer.nonUs}/${latest.noReferrer.total}; flag >= ${T.botShareSpike})` });
+    if (typeof share === 'number') {
+      const xs = base.map(w => w.botShareNoReferrer).filter(x => typeof x === 'number');
+      const avg = mean(xs);
+      const ratio = avg != null && avg > 0 ? share / avg : null;
+      const byRatio = typeof T.botShareSpikeRatio === 'number' && ratio != null && ratio >= T.botShareSpikeRatio;
+      const byAbsolute = typeof T.botShareSpikeAbsolute === 'number' && share >= T.botShareSpikeAbsolute;
+      if (byRatio || byAbsolute) {
+        flags.push({ code: 'BOT_SPIKE', latest: share, avg: round(avg, 3), ratio: round(ratio, 2), ratioThreshold: T.botShareSpikeRatio ?? null, absoluteThreshold: T.botShareSpikeAbsolute ?? null,
+          baselineWeeks: xs.length, nonUs: latest.noReferrer.nonUs, total: latest.noReferrer.total,
+          text: `BOT_SPIKE: non-US share of no-referrer visitors ${share} (${latest.noReferrer.nonUs}/${latest.noReferrer.total}), prior ${xs.length}-week avg ${avg == null ? 'n/a' : round(avg, 3)}, ratio ${ratio == null ? 'n/a' : round(ratio, 2)} (flag >= ${T.botShareSpikeRatio}x avg or >= ${T.botShareSpikeAbsolute})` });
+      }
     }
   }
   const zeroUs = weeks.filter(w => w.us && w.us.visitors === 0).map(w => w.weekStart);
