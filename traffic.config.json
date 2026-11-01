@@ -19,7 +19,47 @@
     "blog":      ["^/blog/"],
     "metro":     ["^/nyc-prototype-development$", "^/[a-z0-9-]+-product-development$"]
   },
-  "report": { "pageColumns": ["/contact-us", "/inventors"], "deepPagesWeeks": 4 },
+  "google": {
+    "tokenEndpoint": "https://oauth2.googleapis.com/token",
+    "scopes": ["https://www.googleapis.com/auth/analytics.readonly", "https://www.googleapis.com/auth/webmasters.readonly"],
+    "timeoutMs": 30000,
+    "retries": 2
+  },
+  "ga4": {
+    "endpoint": "https://analyticsdata.googleapis.com/v1beta",
+    "country": "US",
+    "keep": ["google/cpc", "google/organic", "(direct)/(none)", "chatgpt.com/referral", "bing/organic"],
+    "sourceContains": { "linkedin": "linkedin", "chatgpt.com/referral": "chatgpt" },
+    "events": ["form_submit", "form_step2_complete", "booking_confirmed", "generate_lead"],
+    "topSources": 10,
+    "limit": 100000
+  },
+  "gsc": {
+    "endpoint": "https://www.googleapis.com/webmasters/v3",
+    "siteUrl": "sc-domain:rma-engineering.com",
+    "country": "usa",
+    "weeks": 16,
+    "dataState": "all",
+    "brandRegex": "(?i)rma eng|rma-eng",
+    "topQueries": 25,
+    "topQueriesFetch": 500,
+    "movers": 5,
+    "provisionalLagDays": 3
+  },
+  "report": {
+    "pageColumns": ["/contact-us", "/inventors"],
+    "deepPagesWeeks": 4,
+    "ga4Columns": [
+      { "label": "Ads", "key": "google/cpc" },
+      { "label": "Organic", "key": "google/organic" },
+      { "label": "Direct", "key": "(direct)/(none)" },
+      { "label": "ChatGPT", "key": "chatgpt.com/referral" },
+      { "label": "Bing", "key": "bing/organic" },
+      { "label": "LinkedIn", "key": "linkedin" },
+      { "label": "Other", "key": "other" }
+    ],
+    "gscWeeks": 8
+  },
   "thresholds": {
     "usNoRefDownRatio": 0.75,
     "deepPagesDownRatio": 0.60,
@@ -28,6 +68,16 @@
     "botShareSpikeRatio": 1.4,
     "botShareSpikeAbsolute": 0.7,
     "chatgptZeroWeeks": 2,
-    "chatgptMaxAtLeast": 3
+    "chatgptMaxAtLeast": 3,
+    "brandImprDownRatio": 0.5,
+    "organicDownRatio": 0.6,
+    "organicDownMinAvg": 10,
+    "chatgptDownRatio": 0.5,
+    "chatgptDownMinAvg": 4,
+    "gscImprDownRatio": 0.7,
+    "ga4VsVercelGapShare": 0.5,
+    "eventDropRatio": 0.4,
+    "eventDropMinAvg": 3,
+    "eventDropEvents": ["form_submit", "booking_confirmed", "generate_lead"]
   }
 }

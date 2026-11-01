@@ -260,14 +260,17 @@ test('renderMarkdown: header with count, 8 table rows, deep pages for the last 4
   const md = renderMarkdown(report, cfg);
   const lines = md.trimEnd().split('\n');
   assert.equal(lines[0], '# Weekly traffic · generated 2026-11-02 11:07 UTC · 8 weeks Aug 31 to Oct 25 · 1 flag');
-  assert.equal(lines[2], '| Week | US vis | NoRef vis | NoRef pv | Google | ChatGPT | Deep | /contact-us | /inventors | Bot |');
-  assert.equal(lines[3], '|---|---|---|---|---|---|---|---|---|---|');
-  assert.equal(lines[4], '| Aug 31 | 100 | 100 | 200 | 1 | 0 | 20 | 10 | 0 | 10% |');
-  assert.equal(lines[11], '| Oct 19 | 100 | 60 | 120 | 1 | 0 | 20 | 10 | 0 | 10% |');
+  assert.equal(lines[2], '## Vercel (US)');
+  assert.equal(lines[3], '| Week | US vis | NoRef vis | NoRef pv | Google | ChatGPT | Deep | /contact-us | /inventors | Bot |');
+  assert.equal(lines[4], '|---|---|---|---|---|---|---|---|---|---|');
+  assert.equal(lines[5], '| Aug 31 | 100 | 100 | 200 | 1 | 0 | 20 | 10 | 0 | 10% |');
+  assert.equal(lines[12], '| Oct 19 | 100 | 60 | 120 | 1 | 0 | 20 | 10 | 0 | 10% |');
   assert.ok(md.includes('## Deep pages, last 4 weeks (US visitors)\n| Page | Sep 28 | Oct 5 | Oct 12 | Oct 19 |\n|---|---|---|---|---|\n| /about-us | 0 | 0 | 3 | 4 |\n| /services/design-services | 0 | 0 | 0 | 2 |\n'), md);
   assert.ok(!md.includes('/blog/x'));
   assert.ok(md.includes('## Flags\n- US_NOREF_DOWN: US no-referrer visitors 60, prior 4-week avg 100, ratio 0.6 (flag <= 0.75)\n'));
-  assert.ok(md.endsWith('\nSources: Vercel ok (5/5 queries)\n'));
+  assert.ok(md.endsWith('\nSources: Vercel ok (5/5 queries) · GA4 not configured · Search Console not configured\n'));   // no Google sources in this report
+  assert.ok(md.includes('## GA4 sessions by source (US)\nnot configured\n'));
+  assert.ok(md.includes('## Search Console (US)\nnot configured\n'));
 
   const clean = renderMarkdown({ ...report, flags: [] }, cfg);
   assert.ok(clean.startsWith('# Weekly traffic · generated 2026-11-02 11:07 UTC · 8 weeks Aug 31 to Oct 25 · 0 flags\n'));
@@ -275,5 +278,5 @@ test('renderMarkdown: header with count, 8 table rows, deep pages for the last 4
 
   const broken = renderMarkdown({ ...report, weeks: weeks.map(w => ({ ...w, referrers: null, noReferrer: null, botShareNoReferrer: null })), sources: { vercel: { ok: false, queriesOk: 4, queriesTotal: 5, errors: [{ query: 'referrers', message: 'HTTP 500' }] } } }, cfg);
   assert.ok(broken.includes('| Oct 19 | 100 | - | - | - | - | 20 | 10 | 0 | - |'));
-  assert.ok(broken.endsWith('\nSources: Vercel error (referrers: HTTP 500)\n'));
+  assert.ok(broken.endsWith('\nSources: Vercel error (referrers: HTTP 500) · GA4 not configured · Search Console not configured\n'));
 });
