@@ -139,8 +139,9 @@ export function normalizeGa4(report) {
     return o;
   });
 }
-// "source/medium" kept verbatim when listed; any source containing a cfg.ga4.sourceContains needle (linkedin) gets that
-// bucket; everything else is "other"
+// "source/medium" kept verbatim when listed; otherwise any source containing a cfg.ga4.sourceContains needle gets that
+// bucket (linkedin -> "linkedin"; chatgpt -> "chatgpt.com/referral", because ChatGPT appends utm_source=chatgpt.com to
+// its links and GA4 then reports the medium as "(not set)", not "referral"); everything else is "other"
 export function ga4Bucket(source, medium, cfg) {
   const key = `${source ?? ''}/${medium ?? ''}`;
   if ((cfg.ga4?.keep || []).includes(key)) return key;
@@ -148,7 +149,7 @@ export function ga4Bucket(source, medium, cfg) {
   for (const [bucket, needle] of Object.entries(cfg.ga4?.sourceContains || {})) if (needle && s.includes(String(needle).toLowerCase())) return bucket;
   return 'other';
 }
-export const ga4Buckets = cfg => [...(cfg.ga4?.keep || []), ...Object.keys(cfg.ga4?.sourceContains || {}), 'other'];
+export const ga4Buckets = cfg => [...new Set([...(cfg.ga4?.keep || []), ...Object.keys(cfg.ga4?.sourceContains || {}), 'other'])];
 // sources: normalized rows of report 1 (date, sessionSource, sessionMedium, sessions, totalUsers, keyEvents) or null;
 // events: normalized rows of report 2 (date, eventName, eventCount) or null. One record per window week, or null for a
 // week when neither report ran. `users` is the sum of daily totalUsers, so a returning visitor counts once per day.
@@ -157,16 +158,23 @@ export function buildGa4Weeks(weekStarts, { sources, events }, cfg) {
   const buckets = ga4Buckets(cfg);
   const names = cfg.ga4?.events || [];
   const blank = () => ({ sessions: 0, users: 0, keyEvents: 0 });
+  const topN = cfg.ga4?.topSources ?? 10;
   const acc = Object.fromEntries(weekStarts.map(ws => [ws, {
     sessions: sources ? 0 : null, users: sources ? 0 : null, keyEvents: sources ? 0 : null,
     bySource: sources ? Object.fromEntries(buckets.map(b => [b, blank()])) : null,
+    topSources: sources ? new Map() : null,   // raw "source/medium" -> sessions, for the diagnostic list below
     events: events ? Object.fromEntries(names.map(n => [n, 0])) : null,
   }]));
   for (const r of sources || []) {
     const ws = weekOfDate(ga4Date(r.date)); const w = acc[ws]; if (!w) continue;
     const b = w.bySource[ga4Bucket(r.sessionSource, r.sessionMedium, cfg)];
     for (const [k, m] of [['sessions', 'sessions'], ['users', 'totalUsers'], ['keyEvents', 'keyEvents']]) { w[k] += num(r[m]); b[k] += num(r[m]); }
+    const raw = `${r.sessionSource ?? ''}/${r.sessionMedium ?? ''}`;
+    w.topSources.set(raw, (w.topSources.get(raw) || 0) + num(r.sessions));
   }
+  // topSources: the week's raw source/medium pairs by sessions (top N), so a new or oddly labelled referrer can be seen
+  // in traffic.json without another query. Not rendered in traffic.md.
+  for (const w of Object.values(acc)) if (w.topSources) w.topSources = [...w.topSources].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, topN).map(([sourceMedium, sessions]) => ({ sourceMedium, sessions }));
   for (const r of events || []) {
     const ws = weekOfDate(ga4Date(r.date)); const w = acc[ws]; if (!w) continue;
     const n = String(r.eventName ?? '');

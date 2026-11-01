@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { completeWeeks, weekEndOf, weekOfDate, ga4Date, normalizeGa4, ga4Bucket, buildGa4Weeks, isProvisional, buildGscWeeks, topQueryMovers,
+import { completeWeeks, weekEndOf, weekOfDate, ga4Date, normalizeGa4, ga4Bucket, ga4Buckets, buildGa4Weeks, isProvisional, buildGscWeeks, topQueryMovers,
   ga4SourcesRequest, ga4EventsRequest, gscRequest, computeFlags, renderMarkdown } from '../scripts/traffic-lib.mjs';
 
 const cfg = JSON.parse(fs.readFileSync(new URL('../traffic.config.json', import.meta.url), 'utf8'));
@@ -56,6 +56,22 @@ test('ga4Bucket keeps the listed source/mediums, folds any linkedin source, ever
   assert.equal(ga4Bucket('LinkedIn', 'social', cfg), 'linkedin');
   assert.equal(ga4Bucket('l.facebook.com', 'referral', cfg), 'other');
   assert.equal(ga4Bucket('google', 'organic-ish', cfg), 'other');
+  // ChatGPT appends utm_source=chatgpt.com to its links, so GA4 labels them chatgpt.com / (not set): same bucket
+  assert.equal(ga4Bucket('chatgpt.com', '(not set)', cfg), 'chatgpt.com/referral');
+  assert.equal(ga4Bucket('ChatGPT', 'referral', cfg), 'chatgpt.com/referral');
+  assert.deepEqual(ga4Buckets(cfg), ['google/cpc', 'google/organic', '(direct)/(none)', 'chatgpt.com/referral', 'bing/organic', 'linkedin', 'other']);   // no duplicate for the shared key
+});
+
+test('buildGa4Weeks keeps the raw top source/medium pairs per week as a diagnostic', () => {
+  const rows = normalizeGa4(GA4_SOURCES).concat([{ date: '20261021', sessionSource: 'chatgpt.com', sessionMedium: '(not set)', sessions: 6, totalUsers: 6, keyEvents: 0 }]);
+  const [a, b] = buildGa4Weeks(WEEKS2, { sources: rows, events: null }, cfg);
+  assert.deepEqual(a.topSources, [{ sourceMedium: 'google/organic', sessions: 7 }, { sourceMedium: 'google/cpc', sessions: 5 }]);
+  assert.deepEqual(b.topSources[0], { sourceMedium: 'chatgpt.com/(not set)', sessions: 6 });
+  assert.equal(b.bySource['chatgpt.com/referral'].sessions, 9);   // 3 referral + 6 (not set)
+  assert.equal(b.sessions, 16);
+  assert.equal(b.events, null);
+  const [, c] = buildGa4Weeks(WEEKS2, { sources: rows, events: null }, { ...cfg, ga4: { ...cfg.ga4, topSources: 2 } });
+  assert.equal(c.topSources.length, 2);
 });
 
 test('buildGa4Weeks sums by Monday week and bucket, counts only the configured events, nulls what did not run', () => {

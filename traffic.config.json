@@ -29,8 +29,9 @@
     "endpoint": "https://analyticsdata.googleapis.com/v1beta",
     "country": "US",
     "keep": ["google/cpc", "google/organic", "(direct)/(none)", "chatgpt.com/referral", "bing/organic"],
-    "sourceContains": { "linkedin": "linkedin" },
+    "sourceContains": { "linkedin": "linkedin", "chatgpt.com/referral": "chatgpt" },
     "events": ["form_submit", "form_step2_complete", "booking_confirmed", "generate_lead"],
+    "topSources": 10,
     "limit": 100000
   },
   "gsc": {
