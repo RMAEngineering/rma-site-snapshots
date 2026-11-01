@@ -173,7 +173,7 @@ async function main() {
   const topQueries = (gscData.topLatest || gscData.topPrior) ? { latestWeekStart: ws16[ws16.length - 1], priorWeekStart: ws16[ws16.length - 2], ...topQueryMovers(gscData.topLatest, gscData.topPrior, cfg) } : null;
   const gsc = (gscWeeks || topQueries) ? { siteUrl: cfg.gsc?.siteUrl || null, weeks: gscWeeks || [], provisionalWeekStart: gscWeeks?.find(w => w.provisional)?.weekStart ?? null, topQueries } : null;
   const errors = [...vercelErrors, ...googleErrors];
-  const flags = computeFlags(weeks, cfg, errors, { gscWeeks });
+  const flags = computeFlags(weeks, cfg, errors, { gscWeeks, ga4Ok: ga4Status === 'ok' });
   const total = Object.keys(defs).length;
   const report = {
     generatedAt: new Date().toISOString(),

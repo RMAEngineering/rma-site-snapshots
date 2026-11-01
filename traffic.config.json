@@ -75,6 +75,9 @@
     "chatgptDownRatio": 0.5,
     "chatgptDownMinAvg": 4,
     "gscImprDownRatio": 0.7,
-    "ga4VsVercelGapShare": 0.5
+    "ga4VsVercelGapShare": 0.5,
+    "eventDropRatio": 0.4,
+    "eventDropMinAvg": 3,
+    "eventDropEvents": ["form_submit", "booking_confirmed", "generate_lead"]
   }
 }

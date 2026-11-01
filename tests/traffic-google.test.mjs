@@ -190,6 +190,34 @@ test('ORGANIC_DOWN needs a 4-week average of at least 10; CHATGPT_DOWN at least 
   assert.equal(f.minAvg, 10);
 });
 
+test('CHATGPT_ZERO is the Vercel fallback: skipped while sources.ga4 is ok, evaluated otherwise', () => {
+  const vercelZero = [0, 0, 0, 3, 1, 0, 0, 0];
+  const weeks = STARTS.map((ws, i) => ({ ...vw(ws), referrers: { 'chatgpt.com': { visitors: vercelZero[i], pageviews: vercelZero[i] } } }));
+  assert.deepEqual(codes(computeFlags(weeks, cfg, [], { ga4Ok: true })), []);                      // GA4 ok: CHATGPT_DOWN owns ChatGPT (steady here, so nothing)
+  assert.deepEqual(codes(computeFlags(weeks, cfg, [], { ga4Ok: false })), ['CHATGPT_ZERO']);       // GA4 not configured / error
+  assert.deepEqual(codes(computeFlags(weeks, cfg)), ['CHATGPT_ZERO']);                             // no google info at all
+  const gptDrop = weeks.map((w, i) => ({ ...w, ga4: { ...w.ga4, bySource: { ...w.ga4.bySource, 'chatgpt.com/referral': { sessions: i === 7 ? 1 : 10, users: 1, keyEvents: 0 } } } }));
+  assert.deepEqual(codes(computeFlags(gptDrop, cfg, [], { ga4Ok: true })), ['CHATGPT_DOWN']);     // the GA4 flag takes over
+});
+
+test('EVENT_DROP: one flag per configured event at or below 40% of a prior 4-week average of at least 3', () => {
+  const ev = (values, latestOnly = {}) => STARTS.map((ws, i) => { const w = vw(ws); w.ga4.events = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, i === 7 ? (latestOnly[k] ?? v) : v])); return w; });
+  assert.deepEqual(codes(computeFlags(ev({ generate_lead: 10 }, { generate_lead: 4 }), cfg)), ['EVENT_DROP']);    // 0.4 exactly
+  assert.deepEqual(codes(computeFlags(ev({ generate_lead: 10 }, { generate_lead: 5 }), cfg)), []);                // 0.5
+  assert.deepEqual(codes(computeFlags(ev({ booking_confirmed: 2 }, { booking_confirmed: 0 }), cfg)), []);         // avg 2 < 3: a trickle, not a drop
+  assert.deepEqual(codes(computeFlags(ev({ form_submit: 3 }, { form_submit: 1 }), cfg)), ['EVENT_DROP']);         // avg 3 qualifies
+  assert.deepEqual(codes(computeFlags(ev({ form_step2_complete: 10 }, { form_step2_complete: 0 }), cfg)), []);    // not in eventDropEvents
+  const two = computeFlags(ev({ form_submit: 5, booking_confirmed: 5, generate_lead: 5 }, { form_submit: 5, booking_confirmed: 1, generate_lead: 0 }), cfg);
+  assert.deepEqual(two.map(f => [f.code, f.event]), [['EVENT_DROP', 'booking_confirmed'], ['EVENT_DROP', 'generate_lead']]);
+  const f = computeFlags(ev({ generate_lead: 10 }, { generate_lead: 4 }), cfg)[0];
+  assert.equal(f.text, 'EVENT_DROP: generate_lead events 4, prior 4-week avg 10, ratio 0.4 (flag <= 0.4, avg >= 3)');
+  assert.deepEqual({ event: f.event, latest: f.latest, avg: f.avg, ratio: f.ratio, threshold: f.threshold, minAvg: f.minAvg }, { event: 'generate_lead', latest: 4, avg: 10, ratio: 0.4, threshold: 0.4, minAvg: 3 });
+  // the live Nov 1 numbers: generate_lead 8, 5, 10, 0 then 1 (avg 5.75 -> 0.17); booking_confirmed 2, 10, 3, 5 then 2 (avg 5 -> 0.4); form_submit 2, 3, 3, 4 then 3
+  const live = STARTS.map((ws, i) => { const w = vw(ws); w.ga4.events = { form_submit: [6, 4, 3, 2, 3, 3, 4, 3][i], booking_confirmed: [2, 5, 1, 2, 10, 3, 5, 2][i], generate_lead: [3, 6, 7, 8, 5, 10, 0, 1][i] }; return w; });
+  assert.deepEqual(computeFlags(live, cfg).map(f => `${f.event} ${f.ratio}`), ['booking_confirmed 0.4', 'generate_lead 0.17']);
+  assert.deepEqual(codes(computeFlags(ev({ generate_lead: 10 }, { generate_lead: 0 }).map(w => ({ ...w, ga4: null })), cfg)), []);   // no GA4
+});
+
 test('GA4_VS_VERCEL_GAP is symmetric and strict: more than half of the larger count', () => {
   assert.deepEqual(codes(computeFlags(vseries('sessions', 120, 240).map((w, i) => (i === 7 ? { ...w, us: { visitors: 116, pageviews: 0 } } : w)), cfg)), ['GA4_VS_VERCEL_GAP']);   // 0.52
   assert.deepEqual(codes(computeFlags(vseries('sessions', 120, 232).map((w, i) => (i === 7 ? { ...w, us: { visitors: 116, pageviews: 0 } } : w)), cfg)), []);                     // exactly 0.5
@@ -206,9 +234,9 @@ test('DATA_GAP covers Google query and token failures; "not configured" is not a
   const t = computeFlags(vseries('us', 100, 100), cfg, [{ query: 'google:token', message: 'refresh token expired — rerun google-auth-once' }]);
   assert.equal(t[0].text, 'DATA_GAP: query google:token failed (refresh token expired — rerun google-auth-once)');
   assert.deepEqual(computeFlags(vseries('us', 100, 100).map(w => ({ ...w, ga4: null })), cfg, [], {}), []);
-  const weeks = STARTS.map((ws, i) => vw(ws, { organic: i === 7 ? 1 : 20, chatgpt: i === 7 ? 0 : 5, sessions: i === 7 ? 400 : 120 }));
+  const weeks = STARTS.map((ws, i) => { const w = vw(ws, { organic: i === 7 ? 1 : 20, chatgpt: i === 7 ? 0 : 5, sessions: i === 7 ? 400 : 120 }); w.ga4.events = { generate_lead: i === 7 ? 0 : 5 }; return w; });
   const gsc = completeWeeks('2026-11-01T22:00:00Z', 16).weekStarts.map((ws, i) => gw(ws, { impressions: i === 15 ? 100 : 1000, brand: i === 15 ? 10 : 100 }));
-  assert.deepEqual(codes(computeFlags(weeks, cfg, [{ query: 'gsc:brand', message: 'HTTP 500' }], { gscWeeks: gsc })), ['BRAND_IMPR_DOWN', 'ORGANIC_DOWN', 'CHATGPT_DOWN', 'GSC_IMPR_DOWN', 'GA4_VS_VERCEL_GAP', 'DATA_GAP']);
+  assert.deepEqual(codes(computeFlags(weeks, cfg, [{ query: 'gsc:brand', message: 'HTTP 500' }], { gscWeeks: gsc, ga4Ok: true })), ['BRAND_IMPR_DOWN', 'ORGANIC_DOWN', 'CHATGPT_DOWN', 'EVENT_DROP', 'GSC_IMPR_DOWN', 'GA4_VS_VERCEL_GAP', 'DATA_GAP']);
 });
 
 // ---------------------------------------------------------------- traffic.md

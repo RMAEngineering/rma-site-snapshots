@@ -271,12 +271,13 @@ const get = {
 };
 
 // errors: [{ query, message }] from any source (Vercel, GA4, Search Console, the Google token swap) — each one is a data
-// gap. google: { gscWeeks } — the 16-week Search Console series (null when not configured). weeks[i].ga4 carries GA4.
+// gap. google: { gscWeeks, ga4Ok } — the 16-week Search Console series (null when not configured) and whether
+// sources.ga4 is "ok" (decides which ChatGPT flag applies). weeks[i].ga4 carries GA4.
 export function computeFlags(weeks, cfg, errors = [], google = {}) {
   const T = cfg.thresholds || {};
   const nBase = cfg.window?.baselineWeeks ?? 4;
   const flags = [];
-  const ratioFlag = (arr, code, label, getter, threshold, dir, minAvg = 0) => {
+  const ratioFlag = (arr, code, label, getter, threshold, dir, minAvg = 0, extra = {}) => {
     const latest = arr[arr.length - 1];
     if (!latest) return;
     const base = arr.slice(Math.max(0, arr.length - 1 - nBase), arr.length - 1);
@@ -286,7 +287,7 @@ export function computeFlags(weeks, cfg, errors = [], google = {}) {
     if (cur == null || avg == null || avg <= 0 || avg < minAvg || typeof threshold !== 'number') return;
     const ratio = cur / avg;
     if (dir === 'down' ? ratio <= threshold : ratio >= threshold) {
-      flags.push({ code, latest: cur, avg: round(avg, 1), ratio: round(ratio, 2), threshold, ...(minAvg ? { minAvg } : {}), baselineWeeks: xs.length,
+      flags.push({ code, ...extra, latest: cur, avg: round(avg, 1), ratio: round(ratio, 2), threshold, ...(minAvg ? { minAvg } : {}), baselineWeeks: xs.length,
         text: `${code}: ${label} ${cur}, prior ${xs.length}-week avg ${round(avg, 1)}, ratio ${round(ratio, 2)} (flag ${dir === 'down' ? '<=' : '>='} ${threshold}${minAvg ? `, avg >= ${minAvg}` : ''})` });
     }
   };
@@ -295,13 +296,18 @@ export function computeFlags(weeks, cfg, errors = [], google = {}) {
   if (latest) {
     ratioFlag(weeks, 'US_NOREF_DOWN', 'US no-referrer visitors', get.usNoRefVisitors, T.usNoRefDownRatio, 'down');
     ratioFlag(weeks, 'DEEP_PAGES_DOWN', 'deep-page visitors', get.deepPagesVisitors, T.deepPagesDownRatio, 'down');
-    const zeroWeeks = T.chatgptZeroWeeks ?? 2, maxAtLeast = T.chatgptMaxAtLeast ?? 3;
-    const gpt = weeks.map(get.chatgptVisitors);
-    if (gpt.length >= zeroWeeks && gpt.every(x => typeof x === 'number')) {
-      const tail = gpt.slice(-zeroWeeks), max = Math.max(...gpt);
-      if (tail.every(x => x === 0) && max >= maxAtLeast) {
-        flags.push({ code: 'CHATGPT_ZERO', latest: tail, max, threshold: maxAtLeast, zeroWeeks,
-          text: `CHATGPT_ZERO: chatgpt.com visitors ${tail.join(', ')} in the last ${zeroWeeks} weeks; ${weeks.length}-week max ${max} (flag >= ${maxAtLeast})` });
+    // CHATGPT_ZERO is the Vercel-side ChatGPT check (referrer chatgpt.com). It runs only while GA4 is not available:
+    // with sources.ga4 = ok, CHATGPT_DOWN on GA4's chatgpt.com/ai-assistant sessions is the ChatGPT flag, because
+    // Vercel misses the app clicks that arrive with utm_source=chatgpt.com but no referrer and reads 0 while GA4 is steady.
+    if (!google.ga4Ok) {
+      const zeroWeeks = T.chatgptZeroWeeks ?? 2, maxAtLeast = T.chatgptMaxAtLeast ?? 3;
+      const gpt = weeks.map(get.chatgptVisitors);
+      if (gpt.length >= zeroWeeks && gpt.every(x => typeof x === 'number')) {
+        const tail = gpt.slice(-zeroWeeks), max = Math.max(...gpt);
+        if (tail.every(x => x === 0) && max >= maxAtLeast) {
+          flags.push({ code: 'CHATGPT_ZERO', latest: tail, max, threshold: maxAtLeast, zeroWeeks,
+            text: `CHATGPT_ZERO: chatgpt.com visitors ${tail.join(', ')} in the last ${zeroWeeks} weeks; ${weeks.length}-week max ${max} (flag >= ${maxAtLeast})` });
+        }
       }
     }
     ratioFlag(weeks, 'AD_PAGES_DOWN', 'ad-page visitors', get.adPagesVisitors, T.adPagesDownRatio, 'down');
@@ -327,6 +333,11 @@ export function computeFlags(weeks, cfg, errors = [], google = {}) {
     ratioFlag(gscWeeks, 'BRAND_IMPR_DOWN', 'brand impressions', get.gscBrandImpr, T.brandImprDownRatio, 'down');
     ratioFlag(weeks, 'ORGANIC_DOWN', 'google/organic sessions', get.ga4Organic, T.organicDownRatio, 'down', T.organicDownMinAvg ?? 0);
     ratioFlag(weeks, 'CHATGPT_DOWN', 'chatgpt.com/referral sessions', get.ga4Chatgpt, T.chatgptDownRatio, 'down', T.chatgptDownMinAvg ?? 0);
+    // EVENT_DROP: one flag per configured GA4 event whose newest week is at or below `eventDropRatio` of a prior
+    // 4-week average of at least `eventDropMinAvg` (a trickle of 1–2 events a week cannot "drop")
+    for (const name of T.eventDropEvents || []) {
+      ratioFlag(weeks, 'EVENT_DROP', `${name} events`, w => w.ga4?.events?.[name] ?? null, T.eventDropRatio, 'down', T.eventDropMinAvg ?? 0, { event: name });
+    }
     ratioFlag(gscWeeks, 'GSC_IMPR_DOWN', 'Search Console impressions', get.gscImpressions, T.gscImprDownRatio, 'down');
     // GA4_VS_VERCEL_GAP: the two US counts for the newest week disagree by more than `ga4VsVercelGapShare` of the larger
     // one (symmetric, so it does not matter which side is high). Sessions and visitors are different units, which is why
