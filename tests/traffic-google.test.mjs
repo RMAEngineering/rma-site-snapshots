@@ -56,7 +56,8 @@ test('ga4Bucket keeps the listed source/mediums, folds any linkedin source, ever
   assert.equal(ga4Bucket('LinkedIn', 'social', cfg), 'linkedin');
   assert.equal(ga4Bucket('l.facebook.com', 'referral', cfg), 'other');
   assert.equal(ga4Bucket('google', 'organic-ish', cfg), 'other');
-  // ChatGPT appends utm_source=chatgpt.com to its links, so GA4 labels them chatgpt.com / (not set): same bucket
+  // GA4 labels ChatGPT sessions chatgpt.com / ai-assistant (seen live Nov 1, 2026; ChatGPT appends utm_source=chatgpt.com): same bucket
+  assert.equal(ga4Bucket('chatgpt.com', 'ai-assistant', cfg), 'chatgpt.com/referral');
   assert.equal(ga4Bucket('chatgpt.com', '(not set)', cfg), 'chatgpt.com/referral');
   assert.equal(ga4Bucket('ChatGPT', 'referral', cfg), 'chatgpt.com/referral');
   assert.deepEqual(ga4Buckets(cfg), ['google/cpc', 'google/organic', '(direct)/(none)', 'chatgpt.com/referral', 'bing/organic', 'linkedin', 'other']);   // no duplicate for the shared key

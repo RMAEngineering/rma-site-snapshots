@@ -140,8 +140,9 @@ export function normalizeGa4(report) {
   });
 }
 // "source/medium" kept verbatim when listed; otherwise any source containing a cfg.ga4.sourceContains needle gets that
-// bucket (linkedin -> "linkedin"; chatgpt -> "chatgpt.com/referral", because ChatGPT appends utm_source=chatgpt.com to
-// its links and GA4 then reports the medium as "(not set)", not "referral"); everything else is "other"
+// bucket (linkedin -> "linkedin"; chatgpt -> "chatgpt.com/referral", because GA4 labels ChatGPT sessions
+// "chatgpt.com / ai-assistant" — ChatGPT appends utm_source=chatgpt.com to its links — never "referral"); everything
+// else is "other"
 export function ga4Bucket(source, medium, cfg) {
   const key = `${source ?? ''}/${medium ?? ''}`;
   if ((cfg.ga4?.keep || []).includes(key)) return key;
