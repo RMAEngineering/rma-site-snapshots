@@ -48,6 +48,32 @@ jobs:
           ONLY_PAGES: ${{ inputs.pages }}
         run: node scripts/snapshot.mjs
 
+      # ---- Weekly traffic report (Vercel Web Analytics). The publish step below replaces the snapshots branch with out/
+      # wholesale (out/latest -> latest/, out/history -> history/), so everything here writes into out/, and the history
+      # is copied forward from the previous run on EVERY trigger — anything not copied is gone after the push.
+      - name: Carry traffic history forward
+        run: |
+          mkdir -p out/history/traffic
+          cp previous/history/traffic/*.json out/history/traffic/ 2>/dev/null || echo "no traffic history yet"
+
+      - name: Weekly traffic report
+        # fresh numbers on the Monday schedule and on a plain manual run; a post-deploy run (repository_dispatch) or a
+        # page-limited manual run does not query Vercel and reuses the previous report (next step)
+        id: traffic
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.pages == '')
+        continue-on-error: true     # a Vercel problem must never block the snapshot publish; the script reports it as DATA_GAP
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          OUT_DIR: out/latest
+          HISTORY_DIR: out/history/traffic
+        run: node scripts/traffic.mjs
+
+      - name: Carry the previous traffic report forward
+        if: steps.traffic.outcome != 'success'     # skipped (post-deploy / page-limited run) or failed outright
+        run: |
+          mkdir -p out/latest
+          cp previous/latest/traffic.json previous/latest/traffic.md out/latest/ 2>/dev/null || echo "no previous traffic report"
+
       - name: Publish to the snapshots branch (orphan, so the repo never bloats)
         if: github.ref == 'refs/heads/main'    # branch test runs (gh workflow run --ref <branch>) must not replace the live gallery
         env:
@@ -74,3 +100,4 @@ jobs:
         run: |
           echo "## Snapshot summary" >> $GITHUB_STEP_SUMMARY
           sed -n '1,60p' out/latest/report.md >> $GITHUB_STEP_SUMMARY
+          if [ -f out/latest/traffic.md ]; then { echo; cat out/latest/traffic.md; } >> $GITHUB_STEP_SUMMARY; fi

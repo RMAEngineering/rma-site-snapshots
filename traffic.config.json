@@ -1,0 +1,32 @@
+{
+  "vercel": {
+    "endpoint": "https://api.vercel.com/v1/query/web-analytics/visits/aggregate",
+    "teamId": "team_035xPAMeSLpAJV8bJITxjMtP",
+    "projectId": "prj_zNoXiJrpzpACjqblulbPyFvfVOWp",
+    "timeoutMs": 20000,
+    "retries": 2
+  },
+  "window": { "weeks": 8, "baselineWeeks": 4 },
+  "country": "US",
+  "referrers": { "keep": ["", "google.com", "chatgpt.com", "bing.com", "linkedin.com", "duckduckgo.com"], "limit": 20 },
+  "paths": { "limit": 60 },
+  "countries": { "limit": 10 },
+  "chatgptPages": { "referrer": "chatgpt.com", "limit": 20 },
+  "pageGroups": {
+    "adPages":   ["^/contact-us$", "^/inventors$"],
+    "deepPages": ["^/our-approach$", "^/reality-check$", "^/about-us$", "^/services(/|$)", "^/industries(/|$)", "^/faq$"],
+    "thankYou":  ["/thank-you$"],
+    "blog":      ["^/blog/"],
+    "metro":     ["^/nyc-prototype-development$", "^/[a-z0-9-]+-product-development$"]
+  },
+  "report": { "pageColumns": ["/contact-us", "/inventors"], "deepPagesWeeks": 4 },
+  "thresholds": {
+    "usNoRefDownRatio": 0.75,
+    "deepPagesDownRatio": 0.60,
+    "adPagesDownRatio": 0.60,
+    "trafficUpRatio": 1.40,
+    "botShareSpike": 0.5,
+    "chatgptZeroWeeks": 2,
+    "chatgptMaxAtLeast": 3
+  }
+}

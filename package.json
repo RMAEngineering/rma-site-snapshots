@@ -6,7 +6,8 @@
   "scripts": {
     "snapshot": "node scripts/snapshot.mjs",
     "snapshot:local": "SITE_URL=http://localhost:8080 node scripts/snapshot.mjs",
-    "test": "node --test tests/checks.test.mjs"
+    "test": "node --test tests/checks.test.mjs tests/traffic.test.mjs",
+    "traffic": "node scripts/traffic.mjs"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.0",
