@@ -24,7 +24,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { completeWeeks, queryDefs, buildQueryUrl, buildWeeks, computeFlags, renderMarkdown, isoDate, weekEndOf,
+import { completeWeeks, queryDefs, buildQueryUrl, buildWeeks, computeFlagsAndInfo, renderMarkdown, isoDate, weekEndOf,
   normalizeGa4, buildGa4Weeks, ga4SourcesRequest, ga4EventsRequest, gscRequest, buildGscWeeks, topQueryMovers } from './traffic-lib.mjs';
 
 const cfg = JSON.parse(await fs.readFile(new URL('../traffic.config.json', import.meta.url), 'utf8'));
@@ -173,7 +173,7 @@ async function main() {
   const topQueries = (gscData.topLatest || gscData.topPrior) ? { latestWeekStart: ws16[ws16.length - 1], priorWeekStart: ws16[ws16.length - 2], ...topQueryMovers(gscData.topLatest, gscData.topPrior, cfg) } : null;
   const gsc = (gscWeeks || topQueries) ? { siteUrl: cfg.gsc?.siteUrl || null, weeks: gscWeeks || [], provisionalWeekStart: gscWeeks?.find(w => w.provisional)?.weekStart ?? null, topQueries } : null;
   const errors = [...vercelErrors, ...googleErrors];
-  const flags = computeFlags(weeks, cfg, errors, { gscWeeks, ga4Ok: ga4Status === 'ok' });
+  const { flags, info } = computeFlagsAndInfo(weeks, cfg, errors, { gscWeeks, ga4Ok: ga4Status === 'ok' });
   const total = Object.keys(defs).length;
   const report = {
     generatedAt: new Date().toISOString(),
@@ -186,13 +186,14 @@ async function main() {
       google: { configured: googleConfigured, ga4PropertyConfigured: Boolean(ga4Property), siteUrl: cfg.gsc?.siteUrl || null, errors: googleErrors },
     },
     flags,
+    info,
     weeks,
     gsc,
   };
   await fs.mkdir(OUT, { recursive: true });
   await fs.writeFile(path.join(OUT, 'traffic.json'), JSON.stringify(report, null, 1));
   await fs.writeFile(path.join(OUT, 'traffic.md'), renderMarkdown(report, cfg));
-  log(`wrote ${OUT}/traffic.json + traffic.md; ga4 ${ga4Status}; gsc ${gscStatus}; flags: ${flags.map(f => f.code).join(', ') || 'none'}`);
+  log(`wrote ${OUT}/traffic.json + traffic.md; ga4 ${ga4Status}; gsc ${gscStatus}; flags: ${flags.map(f => f.code).join(', ') || 'none'}${info.length ? `; info: ${info.map(i => `${i.code} ${i.event ?? ''}`.trim()).join(', ')}` : ''}`);
 
   // History: one file per complete week of the Vercel window. The newest week is (re)written on every successful
   // refresh; older weeks are written only when their file is missing, so the first run backfills the whole window.
