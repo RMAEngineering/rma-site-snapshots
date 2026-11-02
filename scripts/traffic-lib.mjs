@@ -151,11 +151,21 @@ export function ga4Bucket(source, medium, cfg) {
   return 'other';
 }
 export const ga4Buckets = cfg => [...new Set([...(cfg.ga4?.keep || []), ...Object.keys(cfg.ga4?.sourceContains || {}), 'other'])];
+// GA4 standard reporting lags up to ~48 hours: a week whose end (the Monday 00:00 UTC after it) is less than `lagHours`
+// before `now` is still filling in. It is marked provisional in the tables and the GA4 flags are evaluated on the week
+// before it. The Monday 11:00 UTC schedule always lands here; a run on Wednesday or later does not.
+export function ga4Provisional(weekStart, now, lagHours = 48) {
+  if (now == null) return false;
+  const weekEndMs = new Date(weekStart + 'T00:00:00.000Z').getTime() + WEEK_MS;
+  return new Date(now).getTime() - weekEndMs < lagHours * 3600000;
+}
 // sources: normalized rows of report 1 (date, sessionSource, sessionMedium, sessions, totalUsers, keyEvents) or null;
 // events: normalized rows of report 2 (date, eventName, eventCount) or null. One record per window week, or null for a
 // week when neither report ran. `users` is the sum of daily totalUsers, so a returning visitor counts once per day.
-export function buildGa4Weeks(weekStarts, { sources, events }, cfg) {
+// `now` (optional) sets each week's `provisional` flag; without it no week is provisional.
+export function buildGa4Weeks(weekStarts, { sources, events }, cfg, now = null) {
   if (!sources && !events) return weekStarts.map(() => null);
+  const lagHours = cfg.ga4?.provisionalLagHours ?? 48;
   const buckets = ga4Buckets(cfg);
   const names = cfg.ga4?.events || [];
   const blank = () => ({ sessions: 0, users: 0, keyEvents: 0 });
@@ -182,7 +192,7 @@ export function buildGa4Weeks(weekStarts, { sources, events }, cfg) {
     if (!(n in w.events)) { if (!names.length) w.events[n] = 0; else continue; }
     w.events[n] += num(r.eventCount);
   }
-  return weekStarts.map(ws => acc[ws]);
+  return weekStarts.map(ws => ({ ...acc[ws], provisional: ga4Provisional(ws, now, lagHours) }));
 }
 
 // ---------------------------------------------------------------- Google request bodies
@@ -277,9 +287,11 @@ export function computeFlags(weeks, cfg, errors = [], google = {}) {
   const T = cfg.thresholds || {};
   const nBase = cfg.window?.baselineWeeks ?? 4;
   const flags = [];
+  // extra fields are copied onto the flag; extra.textSuffix (e.g. " (week of Oct 19)") goes after the code in the text
   const ratioFlag = (arr, code, label, getter, threshold, dir, minAvg = 0, extra = {}) => {
     const latest = arr[arr.length - 1];
     if (!latest) return;
+    const { textSuffix = '', ...fields } = extra;
     const base = arr.slice(Math.max(0, arr.length - 1 - nBase), arr.length - 1);
     const cur = getter(latest);
     const xs = base.map(getter).filter(x => typeof x === 'number');
@@ -287,8 +299,8 @@ export function computeFlags(weeks, cfg, errors = [], google = {}) {
     if (cur == null || avg == null || avg <= 0 || avg < minAvg || typeof threshold !== 'number') return;
     const ratio = cur / avg;
     if (dir === 'down' ? ratio <= threshold : ratio >= threshold) {
-      flags.push({ code, ...extra, latest: cur, avg: round(avg, 1), ratio: round(ratio, 2), threshold, ...(minAvg ? { minAvg } : {}), baselineWeeks: xs.length,
-        text: `${code}: ${label} ${cur}, prior ${xs.length}-week avg ${round(avg, 1)}, ratio ${round(ratio, 2)} (flag ${dir === 'down' ? '<=' : '>='} ${threshold}${minAvg ? `, avg >= ${minAvg}` : ''})` });
+      flags.push({ code, ...fields, latest: cur, avg: round(avg, 1), ratio: round(ratio, 2), threshold, ...(minAvg ? { minAvg } : {}), baselineWeeks: xs.length,
+        text: `${code}${textSuffix}: ${label} ${cur}, prior ${xs.length}-week avg ${round(avg, 1)}, ratio ${round(ratio, 2)} (flag ${dir === 'down' ? '<=' : '>='} ${threshold}${minAvg ? `, avg >= ${minAvg}` : ''})` });
     }
   };
   const latest = weeks[weeks.length - 1];
@@ -328,25 +340,30 @@ export function computeFlags(weeks, cfg, errors = [], google = {}) {
           text: `BOT_SPIKE: non-US share of no-referrer visitors ${share} (${latest.noReferrer.nonUs}/${latest.noReferrer.total}), prior ${xs.length}-week avg ${avg == null ? 'n/a' : round(avg, 3)}, ratio ${ratio == null ? 'n/a' : round(ratio, 2)} (flag >= ${T.botShareSpikeRatio}x avg or >= ${T.botShareSpikeAbsolute})` });
       }
     }
-    // Search Console + GA4
+    // Search Console
     const gscWeeks = google.gscWeeks || [];
     ratioFlag(gscWeeks, 'BRAND_IMPR_DOWN', 'brand impressions', get.gscBrandImpr, T.brandImprDownRatio, 'down');
-    ratioFlag(weeks, 'ORGANIC_DOWN', 'google/organic sessions', get.ga4Organic, T.organicDownRatio, 'down', T.organicDownMinAvg ?? 0);
-    ratioFlag(weeks, 'CHATGPT_DOWN', 'chatgpt.com/referral sessions', get.ga4Chatgpt, T.chatgptDownRatio, 'down', T.chatgptDownMinAvg ?? 0);
-    // EVENT_DROP: one flag per configured GA4 event whose newest week is at or below `eventDropRatio` of a prior
+    // GA4 flags. When the newest week's GA4 data is still filling in (ga4.provisional: the run started less than
+    // ga4.provisionalLagHours after the week ended), they are evaluated on the week before it and say so in the text.
+    const gaWeeks = latest.ga4?.provisional && weeks.length > 1 ? weeks.slice(0, -1) : weeks;
+    const gaLatest = gaWeeks[gaWeeks.length - 1];
+    const gaExtra = { weekStart: gaLatest.weekStart, ...(gaWeeks === weeks ? {} : { textSuffix: ` (week of ${weekLabel(gaLatest.weekStart)})` }) };
+    ratioFlag(gaWeeks, 'ORGANIC_DOWN', 'google/organic sessions', get.ga4Organic, T.organicDownRatio, 'down', T.organicDownMinAvg ?? 0, gaExtra);
+    ratioFlag(gaWeeks, 'CHATGPT_DOWN', 'chatgpt.com/referral sessions', get.ga4Chatgpt, T.chatgptDownRatio, 'down', T.chatgptDownMinAvg ?? 0, gaExtra);
+    // EVENT_DROP: one flag per configured GA4 event whose evaluated week is at or below `eventDropRatio` of a prior
     // 4-week average of at least `eventDropMinAvg` (a trickle of 1–2 events a week cannot "drop")
     for (const name of T.eventDropEvents || []) {
-      ratioFlag(weeks, 'EVENT_DROP', `${name} events`, w => w.ga4?.events?.[name] ?? null, T.eventDropRatio, 'down', T.eventDropMinAvg ?? 0, { event: name });
+      ratioFlag(gaWeeks, 'EVENT_DROP', `${name} events`, w => w.ga4?.events?.[name] ?? null, T.eventDropRatio, 'down', T.eventDropMinAvg ?? 0, { event: name, ...gaExtra });
     }
     ratioFlag(gscWeeks, 'GSC_IMPR_DOWN', 'Search Console impressions', get.gscImpressions, T.gscImprDownRatio, 'down');
-    // GA4_VS_VERCEL_GAP: the two US counts for the newest week disagree by more than `ga4VsVercelGapShare` of the larger
-    // one (symmetric, so it does not matter which side is high). Sessions and visitors are different units, which is why
-    // the line sits at 50% and not lower.
-    const a = get.ga4Sessions(latest), b = get.usVisitors(latest);
+    // GA4_VS_VERCEL_GAP: the two US counts for the evaluated week disagree by more than `ga4VsVercelGapShare` of the
+    // larger one (symmetric, so it does not matter which side is high). Sessions and visitors are different units, which
+    // is why the line sits at 50% and not lower.
+    const a = get.ga4Sessions(gaLatest), b = get.usVisitors(gaLatest);
     if (typeof a === 'number' && typeof b === 'number' && Math.max(a, b) > 0 && typeof T.ga4VsVercelGapShare === 'number') {
       const gap = round(Math.abs(a - b) / Math.max(a, b), 2);
-      if (gap > T.ga4VsVercelGapShare) flags.push({ code: 'GA4_VS_VERCEL_GAP', ga4Sessions: a, vercelVisitors: b, gap, threshold: T.ga4VsVercelGapShare,
-        text: `GA4_VS_VERCEL_GAP: GA4 US sessions ${a} vs Vercel US visitors ${b}, gap ${gap} of the larger (flag > ${T.ga4VsVercelGapShare})` });
+      if (gap > T.ga4VsVercelGapShare) flags.push({ code: 'GA4_VS_VERCEL_GAP', weekStart: gaLatest.weekStart, ga4Sessions: a, vercelVisitors: b, gap, threshold: T.ga4VsVercelGapShare,
+        text: `GA4_VS_VERCEL_GAP${gaExtra.textSuffix || ''}: GA4 US sessions ${a} vs Vercel US visitors ${b}, gap ${gap} of the larger (flag > ${T.ga4VsVercelGapShare})` });
     }
   }
   const zeroUs = weeks.filter(w => w.us && w.us.visitors === 0).map(w => w.weekStart);
@@ -396,13 +413,16 @@ export function renderMarkdown(report, cfg) {
   if (!weeks.some(w => w.ga4)) L.push(ga4Status);
   else {
     const gcols = cfg.report?.ga4Columns || ga4Buckets(cfg).map(k => ({ label: k, key: k }));
+    const gmark = w => `${weekLabel(w.weekStart)}${w.ga4?.provisional ? '*' : ''}`;
     L.push(`| Week | Sessions | ${gcols.map(c => c.label).join(' | ')} | Key ev |`, sep(3 + gcols.length));
-    for (const w of weeks) L.push(`| ${weekLabel(w.weekStart)} | ${cell(w.ga4?.sessions)} | ${gcols.map(c => cell(w.ga4?.bySource ? (w.ga4.bySource[c.key]?.sessions ?? 0) : null)).join(' | ')} | ${cell(w.ga4?.keyEvents)} |`);
+    for (const w of weeks) L.push(`| ${gmark(w)} | ${cell(w.ga4?.sessions)} | ${gcols.map(c => cell(w.ga4?.bySource ? (w.ga4.bySource[c.key]?.sessions ?? 0) : null)).join(' | ')} | ${cell(w.ga4?.keyEvents)} |`);
     const names = (cfg.ga4?.events || []).filter(e => weeks.some(w => (w.ga4?.events?.[e] ?? 0) > 0));
     if (names.length) {
       L.push('', '## GA4 events (US)', `| Week | ${names.join(' | ')} |`, sep(1 + names.length));
-      for (const w of weeks) L.push(`| ${weekLabel(w.weekStart)} | ${names.map(e => cell(w.ga4?.events ? (w.ga4.events[e] ?? 0) : null)).join(' | ')} |`);
+      for (const w of weeks) L.push(`| ${gmark(w)} | ${names.map(e => cell(w.ga4?.events ? (w.ga4.events[e] ?? 0) : null)).join(' | ')} |`);
     }
+    const prov = weeks.find(w => w.ga4?.provisional);
+    if (prov) L.push(`\\* provisional: GA4 reporting lags up to ${cfg.ga4?.provisionalLagHours ?? 48} hours; GA4 flags use the week of ${weekLabel(weeks[Math.max(0, weeks.indexOf(prov) - 1)].weekStart)}`);
     if (ga4Status !== 'ok') L.push('', `GA4: ${ga4Status}`);
   }
 

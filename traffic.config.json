@@ -30,8 +30,9 @@
     "country": "US",
     "keep": ["google/cpc", "google/organic", "(direct)/(none)", "chatgpt.com/referral", "bing/organic"],
     "sourceContains": { "linkedin": "linkedin", "chatgpt.com/referral": "chatgpt" },
-    "events": ["form_submit", "form_step2_complete", "booking_confirmed", "generate_lead"],
+    "events": ["form_submit", "form_step2_complete", "booking_confirmed", "generate_lead", "idea_submit"],
     "topSources": 10,
+    "provisionalLagHours": 48,
     "limit": 100000
   },
   "gsc": {
@@ -78,6 +79,6 @@
     "ga4VsVercelGapShare": 0.5,
     "eventDropRatio": 0.4,
     "eventDropMinAvg": 3,
-    "eventDropEvents": ["form_submit", "booking_confirmed", "generate_lead"]
+    "eventDropEvents": ["form_submit", "booking_confirmed", "generate_lead", "idea_submit"]
   }
 }
