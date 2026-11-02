@@ -166,7 +166,7 @@ async function main() {
   }
 
   // ---- assemble
-  const ga4Weeks = buildGa4Weeks(win.weekStarts, ga4Data, cfg);
+  const ga4Weeks = buildGa4Weeks(win.weekStarts, ga4Data, cfg, now);
   weeks.forEach((w, i) => { w.ga4 = ga4Weeks[i]; });
   const gscWeeks = (gscData.daily || gscData.brandDaily) ? buildGscWeeks(gscWin.weekStarts, gscData, cfg, now) : null;
   const ws16 = gscWin.weekStarts;
@@ -177,7 +177,8 @@ async function main() {
   const total = Object.keys(defs).length;
   const report = {
     generatedAt: new Date().toISOString(),
-    window: { weeks: win.weekStarts.length, since: win.since.toISOString(), until: win.until.toISOString(), weekStarts: win.weekStarts, latestWeekStart: win.weekStarts[win.weekStarts.length - 1], gscWeeks: ws16.length, gscSince: ws16[0] },
+    window: { weeks: win.weekStarts.length, since: win.since.toISOString(), until: win.until.toISOString(), weekStarts: win.weekStarts, latestWeekStart: win.weekStarts[win.weekStarts.length - 1], gscWeeks: ws16.length, gscSince: ws16[0],
+      ga4ProvisionalWeekStart: weeks.find(w => w.ga4?.provisional)?.weekStart ?? null },
     sources: {
       vercel: { ok: vercelErrors.length === 0, queriesOk: total - vercelErrors.length, queriesTotal: total, errors: vercelErrors, projectId: cfg.vercel.projectId },
       ga4: ga4Status,

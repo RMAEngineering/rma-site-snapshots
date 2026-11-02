@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { completeWeeks, weekEndOf, weekOfDate, ga4Date, normalizeGa4, ga4Bucket, ga4Buckets, buildGa4Weeks, isProvisional, buildGscWeeks, topQueryMovers,
+import { completeWeeks, weekEndOf, weekOfDate, ga4Date, normalizeGa4, ga4Bucket, ga4Buckets, buildGa4Weeks, ga4Provisional, isProvisional, buildGscWeeks, topQueryMovers,
   ga4SourcesRequest, ga4EventsRequest, gscRequest, computeFlags, renderMarkdown } from '../scripts/traffic-lib.mjs';
 
 const cfg = JSON.parse(fs.readFileSync(new URL('../traffic.config.json', import.meta.url), 'utf8'));
@@ -86,8 +86,9 @@ test('buildGa4Weeks sums by Monday week and bucket, counts only the configured e
   assert.equal(b.bySource['chatgpt.com/referral'].sessions, 3);
   assert.equal(b.bySource['(direct)/(none)'].sessions, 4);
   assert.equal(b.bySource.other.sessions, 1);
-  assert.deepEqual(a.events, { form_submit: 2, form_step2_complete: 0, booking_confirmed: 0, generate_lead: 0 });
-  assert.deepEqual(b.events, { form_submit: 0, form_step2_complete: 0, booking_confirmed: 0, generate_lead: 1 });   // unknown_event ignored
+  assert.deepEqual(a.events, { form_submit: 2, form_step2_complete: 0, booking_confirmed: 0, generate_lead: 0, idea_submit: 0 });
+  assert.deepEqual(b.events, { form_submit: 0, form_step2_complete: 0, booking_confirmed: 0, generate_lead: 1, idea_submit: 0 });   // unknown_event ignored
+  assert.equal(a.provisional, false);   // no `now` given: nothing is provisional
   const [c] = buildGa4Weeks(WEEKS2, { sources: null, events: normalizeGa4(GA4_EVENTS) }, cfg);
   assert.equal(c.sessions, null); assert.equal(c.bySource, null); assert.equal(c.events.form_submit, 2);
   assert.deepEqual(buildGa4Weeks(WEEKS2, { sources: null, events: null }, cfg), [null, null]);   // not configured
@@ -104,7 +105,7 @@ test('ga4 request bodies: US filter, the right dimensions/metrics, the window as
   const e = ga4EventsRequest(win, cfg);
   assert.deepEqual(e.dimensions.map(d => d.name), ['date', 'eventName']);
   assert.deepEqual(e.metrics.map(m => m.name), ['eventCount']);
-  assert.deepEqual(e.dimensionFilter.andGroup.expressions[1].filter, { fieldName: 'eventName', inListFilter: { values: ['form_submit', 'form_step2_complete', 'booking_confirmed', 'generate_lead'] } });
+  assert.deepEqual(e.dimensionFilter.andGroup.expressions[1].filter, { fieldName: 'eventName', inListFilter: { values: ['form_submit', 'form_step2_complete', 'booking_confirmed', 'generate_lead', 'idea_submit'] } });
   assert.ok(!JSON.stringify([s, e]).includes('utm'));
 });
 
@@ -207,6 +208,7 @@ test('EVENT_DROP: one flag per configured event at or below 40% of a prior 4-wee
   assert.deepEqual(codes(computeFlags(ev({ booking_confirmed: 2 }, { booking_confirmed: 0 }), cfg)), []);         // avg 2 < 3: a trickle, not a drop
   assert.deepEqual(codes(computeFlags(ev({ form_submit: 3 }, { form_submit: 1 }), cfg)), ['EVENT_DROP']);         // avg 3 qualifies
   assert.deepEqual(codes(computeFlags(ev({ form_step2_complete: 10 }, { form_step2_complete: 0 }), cfg)), []);    // not in eventDropEvents
+  assert.deepEqual(codes(computeFlags(ev({ idea_submit: 5 }, { idea_submit: 2 }), cfg)), ['EVENT_DROP']);           // the idea form's event is watched too
   const two = computeFlags(ev({ form_submit: 5, booking_confirmed: 5, generate_lead: 5 }, { form_submit: 5, booking_confirmed: 1, generate_lead: 0 }), cfg);
   assert.deepEqual(two.map(f => [f.code, f.event]), [['EVENT_DROP', 'booking_confirmed'], ['EVENT_DROP', 'generate_lead']]);
   const f = computeFlags(ev({ generate_lead: 10 }, { generate_lead: 4 }), cfg)[0];
@@ -216,6 +218,45 @@ test('EVENT_DROP: one flag per configured event at or below 40% of a prior 4-wee
   const live = STARTS.map((ws, i) => { const w = vw(ws); w.ga4.events = { form_submit: [6, 4, 3, 2, 3, 3, 4, 3][i], booking_confirmed: [2, 5, 1, 2, 10, 3, 5, 2][i], generate_lead: [3, 6, 7, 8, 5, 10, 0, 1][i] }; return w; });
   assert.deepEqual(computeFlags(live, cfg).map(f => `${f.event} ${f.ratio}`), ['booking_confirmed 0.4', 'generate_lead 0.17']);
   assert.deepEqual(codes(computeFlags(ev({ generate_lead: 10 }, { generate_lead: 0 }).map(w => ({ ...w, ga4: null })), cfg)), []);   // no GA4
+});
+
+test('ga4Provisional: a week is provisional until 48 hours after it ended (Monday 00:00 UTC)', () => {
+  assert.equal(ga4Provisional('2026-10-26', '2026-11-02T11:05:00Z', 48), true);     // the Monday 11:00 schedule, 11 h after the week ended
+  assert.equal(ga4Provisional('2026-10-26', '2026-11-03T23:00:00Z', 48), true);     // Tuesday evening, 47 h
+  assert.equal(ga4Provisional('2026-10-26', '2026-11-04T00:00:00Z', 48), false);    // exactly 48 h: final
+  assert.equal(ga4Provisional('2026-10-19', '2026-11-02T11:05:00Z', 48), false);    // the week before is long final
+  assert.equal(ga4Provisional('2026-10-26', null, 48), false);
+  assert.equal(ga4Provisional('2026-10-26', '2026-11-04T00:00:00Z', 72), true);     // the lag is configurable
+  const [a, b] = buildGa4Weeks(WEEKS2, { sources: normalizeGa4(GA4_SOURCES), events: null }, cfg, '2026-10-26T11:05:00Z');
+  assert.equal(a.provisional, false); assert.equal(b.provisional, true);
+  const [, c] = buildGa4Weeks(WEEKS2, { sources: normalizeGa4(GA4_SOURCES), events: null }, cfg, '2026-10-28T12:00:00Z');
+  assert.equal(c.provisional, false);
+  assert.deepEqual(buildGa4Weeks(WEEKS2, { sources: null, events: null }, cfg, '2026-10-26T11:05:00Z'), [null, null]);   // not configured: still null, not { provisional }
+});
+
+test('with a provisional newest week the GA4 flags move to the week before it and say so; Vercel flags stay on the newest', () => {
+  // newest week (Oct 19): organic collapses to 0 and GA4 sessions are far from Vercel; the week before (Oct 12) is normal
+  const fresh = STARTS.map((ws, i) => { const w = vw(ws, { organic: i === 7 ? 0 : 20, sessions: i === 7 ? 900 : 120 }); w.ga4.provisional = i === 7; return w; });
+  assert.deepEqual(codes(computeFlags(fresh, cfg, [], { ga4Ok: true })), []);
+  // the week before drops instead: flagged, labelled with that week, weekStart carried; Vercel's US_NOREF_DOWN still reads the newest week
+  const prior = STARTS.map((ws, i) => { const w = vw(ws, { organic: i === 6 ? 0 : 20, chatgpt: i === 6 ? 0 : 5, sessions: i === 6 ? 900 : 120 }); w.ga4.events = { generate_lead: i === 6 ? 0 : 5 }; w.ga4.provisional = i === 7; w.referrers = { '': { visitors: i === 7 ? 10 : 100, pageviews: 0 }, 'chatgpt.com': { visitors: 1, pageviews: 1 } }; return w; });
+  const flags = computeFlags(prior, cfg, [], { ga4Ok: true });
+  assert.deepEqual(codes(flags), ['US_NOREF_DOWN', 'ORGANIC_DOWN', 'CHATGPT_DOWN', 'EVENT_DROP', 'GA4_VS_VERCEL_GAP']);
+  const org = flags.find(f => f.code === 'ORGANIC_DOWN');
+  assert.equal(org.text, 'ORGANIC_DOWN (week of Oct 12): google/organic sessions 0, prior 4-week avg 20, ratio 0 (flag <= 0.6, avg >= 10)');
+  assert.equal(org.weekStart, '2026-10-12');
+  assert.equal(flags.find(f => f.code === 'EVENT_DROP').text, 'EVENT_DROP (week of Oct 12): generate_lead events 0, prior 4-week avg 5, ratio 0 (flag <= 0.4, avg >= 3)');
+  const gap = flags.find(f => f.code === 'GA4_VS_VERCEL_GAP');
+  assert.equal(gap.text, 'GA4_VS_VERCEL_GAP (week of Oct 12): GA4 US sessions 900 vs Vercel US visitors 100, gap 0.89 of the larger (flag > 0.5)');
+  assert.equal(gap.weekStart, '2026-10-12');
+  assert.equal(flags.find(f => f.code === 'US_NOREF_DOWN').text, 'US_NOREF_DOWN: US no-referrer visitors 10, prior 4-week avg 100, ratio 0.1 (flag <= 0.75)');
+  // not provisional: same data, GA4 flags read the newest week and carry no suffix
+  const final = prior.map(w => ({ ...w, ga4: { ...w.ga4, provisional: false } }));
+  const f2 = computeFlags(final, cfg, [], { ga4Ok: true });
+  assert.deepEqual(codes(f2), ['US_NOREF_DOWN']);                                   // Oct 12's dip is now inside the baseline, the newest week is normal
+  const single = computeFlags(vseries('organic', 20, 5), cfg)[0];
+  assert.equal(single.weekStart, '2026-10-19');                                       // weekStart is always present on GA4 flags
+  assert.ok(!single.text.includes('week of'));
 });
 
 test('GA4_VS_VERCEL_GAP is symmetric and strict: more than half of the larger count', () => {
@@ -252,6 +293,11 @@ test('renderMarkdown: GA4 and Search Console sections, provisional mark, movers 
   assert.ok(md.includes('## GA4 sessions by source (US)\n| Week | Sessions | Ads | Organic | Direct | ChatGPT | Bing | LinkedIn | Other | Key ev |\n|---|---|---|---|---|---|---|---|---|---|\n| Sep 7 | 120 | 0 | 20 | 0 | 5 | 0 | 0 | 0 | 1 |\n'), md);
   assert.ok(md.includes('## GA4 events (US)\n| Week | form_submit | generate_lead |\n|---|---|---|\n'), md);          // only events with a non-zero week
   assert.ok(md.includes('| Oct 26 | 3 | 1 |\n'), md);
+  assert.ok(!md.includes('GA4 reporting lags'), md);                                                                   // nothing provisional here
+  const provisional = renderMarkdown({ ...report, weeks: weeks.map((w, i) => ({ ...w, ga4: { ...w.ga4, provisional: i === 7 } })) }, cfg);
+  assert.ok(provisional.includes('| Oct 26* | 120 | 0 | 20 | 0 | 5 | 0 | 0 | 0 | 1 |\n'), provisional);                // sessions table marked
+  assert.ok(provisional.includes('| Oct 26* | 3 | 1 |\n\\* provisional: GA4 reporting lags up to 48 hours; GA4 flags use the week of Oct 19\n'), provisional);   // events table marked + footnote
+  assert.ok(provisional.includes('| Oct 19 | 120 |'), provisional);                                                    // only the newest week carries the mark
   assert.ok(md.includes('## Search Console (US)\n| Week | Clicks | Impr | Brand impr | Brand clicks | Pos |\n|---|---|---|---|---|---|\n| Sep 7 | 10 | 1000 | 100 | 5 | 8 |\n'), md);
   assert.ok(md.includes('| Oct 26* | 10 | 1000 | 100 | 5 | 8 |\n\\* provisional: Search Console data lags about 3 days\n'), md);
   assert.equal((md.match(/^\| (Sep|Oct) \d+\*? \| 10 \| 1000 /gm) || []).length, 8);                                      // last 8 of the 16 weeks
