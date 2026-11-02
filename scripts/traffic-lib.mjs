@@ -163,9 +163,13 @@ export function ga4Provisional(weekStart, now, lagHours = 48) {
 // events: normalized rows of report 2 (date, eventName, eventCount) or null. One record per window week, or null for a
 // week when neither report ran. `users` is the sum of daily totalUsers, so a returning visitor counts once per day.
 // `now` (optional) sets each week's `provisional` flag; without it no week is provisional.
+// Leads = the sum of the cfg.ga4.leadEvents counts (form_step2_complete + booking_confirmed + idea_submit); null when
+// the events report did not run
+export const leadsOf = (events, leadEvents = []) => events ? leadEvents.reduce((n, e) => n + num(events[e]), 0) : null;
 export function buildGa4Weeks(weekStarts, { sources, events }, cfg, now = null) {
   if (!sources && !events) return weekStarts.map(() => null);
   const lagHours = cfg.ga4?.provisionalLagHours ?? 48;
+  const leadEvents = cfg.ga4?.leadEvents || [];
   const buckets = ga4Buckets(cfg);
   const names = cfg.ga4?.events || [];
   const blank = () => ({ sessions: 0, users: 0, keyEvents: 0 });
@@ -192,7 +196,7 @@ export function buildGa4Weeks(weekStarts, { sources, events }, cfg, now = null) 
     if (!(n in w.events)) { if (!names.length) w.events[n] = 0; else continue; }
     w.events[n] += num(r.eventCount);
   }
-  return weekStarts.map(ws => ({ ...acc[ws], provisional: ga4Provisional(ws, now, lagHours) }));
+  return weekStarts.map(ws => ({ ...acc[ws], leads: leadsOf(acc[ws].events, leadEvents), provisional: ga4Provisional(ws, now, lagHours) }));
 }
 
 // ---------------------------------------------------------------- Google request bodies
@@ -276,6 +280,7 @@ const get = {
   ga4Organic:        w => w.ga4?.bySource?.['google/organic']?.sessions ?? null,
   ga4Chatgpt:        w => w.ga4?.bySource?.['chatgpt.com/referral']?.sessions ?? null,
   ga4Sessions:       w => w.ga4?.sessions ?? null,
+  ga4Leads:          w => w.ga4?.leads ?? null,
   gscImpressions:    w => w.impressions ?? null,
   gscBrandImpr:      w => w.brand?.impressions ?? null,
 };
@@ -283,10 +288,13 @@ const get = {
 // errors: [{ query, message }] from any source (Vercel, GA4, Search Console, the Google token swap) — each one is a data
 // gap. google: { gscWeeks, ga4Ok } — the 16-week Search Console series (null when not configured) and whether
 // sources.ga4 is "ok" (decides which ChatGPT flag applies). weeks[i].ga4 carries GA4.
-export function computeFlags(weeks, cfg, errors = [], google = {}) {
+// Returns { flags, info }: info holds would-be flags demoted to an information line (a booking_confirmed EVENT_DROP
+// while LEADS_DOWN did not fire); they are printed under the flags but never counted as one.
+export const computeFlags = (weeks, cfg, errors = [], google = {}) => computeFlagsAndInfo(weeks, cfg, errors, google).flags;
+export function computeFlagsAndInfo(weeks, cfg, errors = [], google = {}) {
   const T = cfg.thresholds || {};
   const nBase = cfg.window?.baselineWeeks ?? 4;
-  const flags = [];
+  const flags = [], info = [];
   // extra fields are copied onto the flag; extra.textSuffix (e.g. " (week of Oct 19)") goes after the code in the text
   const ratioFlag = (arr, code, label, getter, threshold, dir, minAvg = 0, extra = {}) => {
     const latest = arr[arr.length - 1];
@@ -350,10 +358,25 @@ export function computeFlags(weeks, cfg, errors = [], google = {}) {
     const gaExtra = { weekStart: gaLatest.weekStart, ...(gaWeeks === weeks ? {} : { textSuffix: ` (week of ${weekLabel(gaLatest.weekStart)})` }) };
     ratioFlag(gaWeeks, 'ORGANIC_DOWN', 'google/organic sessions', get.ga4Organic, T.organicDownRatio, 'down', T.organicDownMinAvg ?? 0, gaExtra);
     ratioFlag(gaWeeks, 'CHATGPT_DOWN', 'chatgpt.com/referral sessions', get.ga4Chatgpt, T.chatgptDownRatio, 'down', T.chatgptDownMinAvg ?? 0, gaExtra);
+    // LEADS_DOWN: the lead total (cfg.ga4.leadEvents summed) at or below `leadsDownRatio` of a prior 4-week average of
+    // at least `leadsDownMinAvg`
+    ratioFlag(gaWeeks, 'LEADS_DOWN', `leads (${(cfg.ga4?.leadEvents || []).join(' + ')})`, get.ga4Leads, T.leadsDownRatio, 'down', T.leadsDownMinAvg ?? 0, gaExtra);
     // EVENT_DROP: one flag per configured GA4 event whose evaluated week is at or below `eventDropRatio` of a prior
     // 4-week average of at least `eventDropMinAvg` (a trickle of 1–2 events a week cannot "drop")
     for (const name of T.eventDropEvents || []) {
       ratioFlag(gaWeeks, 'EVENT_DROP', `${name} events`, w => w.ga4?.events?.[name] ?? null, T.eventDropRatio, 'down', T.eventDropMinAvg ?? 0, { event: name, ...gaExtra });
+    }
+    // Events in `eventDropRequiresLeadsDown` (booking_confirmed) only count as a flag when LEADS_DOWN fired too: a lone
+    // booking dip while total leads hold is bookings moving to the other forms, so it becomes an info line instead.
+    const gated = new Set(T.eventDropRequiresLeadsDown || []);
+    if (gated.size && !flags.some(f => f.code === 'LEADS_DOWN')) {
+      for (let i = flags.length - 1; i >= 0; i--) {
+        const f = flags[i];
+        if (f.code === 'EVENT_DROP' && gated.has(f.event)) {
+          flags.splice(i, 1);
+          info.unshift({ ...f, info: true, reason: 'LEADS_DOWN did not fire', text: `${f.text} — info only: leads held, LEADS_DOWN did not fire` });
+        }
+      }
     }
     ratioFlag(gscWeeks, 'GSC_IMPR_DOWN', 'Search Console impressions', get.gscImpressions, T.gscImprDownRatio, 'down');
     // GA4_VS_VERCEL_GAP: the two US counts for the evaluated week disagree by more than `ga4VsVercelGapShare` of the
@@ -372,7 +395,7 @@ export function computeFlags(weeks, cfg, errors = [], google = {}) {
     if (zeroUs.length) parts.push(`0 US visitors in week${zeroUs.length > 1 ? 's' : ''} ${zeroUs.join(', ')}`);
     flags.push({ code: 'DATA_GAP', failedQueries: errors.map(e => e.query), zeroUsWeeks: zeroUs, text: `DATA_GAP: ${parts.join('; ')}` });
   }
-  return flags;
+  return { flags, info };
 }
 
 // ---------------------------------------------------------------- traffic.md
@@ -418,8 +441,8 @@ export function renderMarkdown(report, cfg) {
     for (const w of weeks) L.push(`| ${gmark(w)} | ${cell(w.ga4?.sessions)} | ${gcols.map(c => cell(w.ga4?.bySource ? (w.ga4.bySource[c.key]?.sessions ?? 0) : null)).join(' | ')} | ${cell(w.ga4?.keyEvents)} |`);
     const names = (cfg.ga4?.events || []).filter(e => weeks.some(w => (w.ga4?.events?.[e] ?? 0) > 0));
     if (names.length) {
-      L.push('', '## GA4 events (US)', `| Week | ${names.join(' | ')} |`, sep(1 + names.length));
-      for (const w of weeks) L.push(`| ${gmark(w)} | ${names.map(e => cell(w.ga4?.events ? (w.ga4.events[e] ?? 0) : null)).join(' | ')} |`);
+      L.push('', '## GA4 events (US)', `| Week | ${names.join(' | ')} | Leads |`, sep(2 + names.length));
+      for (const w of weeks) L.push(`| ${gmark(w)} | ${names.map(e => cell(w.ga4?.events ? (w.ga4.events[e] ?? 0) : null)).join(' | ')} | ${cell(w.ga4?.leads)} |`);
     }
     const prov = weeks.find(w => w.ga4?.provisional);
     if (prov) L.push(`\\* provisional: GA4 reporting lags up to ${cfg.ga4?.provisionalLagHours ?? 48} hours; GA4 flags use the week of ${weekLabel(weeks[Math.max(0, weeks.indexOf(prov) - 1)].weekStart)}`);
@@ -453,6 +476,7 @@ export function renderMarkdown(report, cfg) {
 
   L.push('', '## Flags');
   if (!flags.length) L.push('No flags'); else for (const f of flags) L.push(`- ${f.text}`);
+  for (const i of report.info || []) L.push(`Info: ${i.text}`);   // demoted would-be flags: shown, never counted
   const v = sources?.vercel || {};
   const vercelLine = v.ok ? `Vercel ok (${v.queriesOk}/${v.queriesTotal} queries)` : `Vercel error (${(v.errors || []).map(e => `${e.query}: ${e.message}`).join('; ') || 'no data'})`;
   L.push('', `Sources: ${vercelLine} · GA4 ${ga4Status} · Search Console ${gscStatus}`);
