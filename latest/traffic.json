@@ -1,0 +1,3888 @@
+{
+ "generatedAt": "2026-11-02T20:42:19.776Z",
+ "window": {
+  "weeks": 8,
+  "since": "2026-09-07T00:00:00.000Z",
+  "until": "2026-11-01T23:59:59.999Z",
+  "weekStarts": [
+   "2026-09-07",
+   "2026-09-14",
+   "2026-09-21",
+   "2026-09-28",
+   "2026-10-05",
+   "2026-10-12",
+   "2026-10-19",
+   "2026-10-26"
+  ],
+  "latestWeekStart": "2026-10-26",
+  "gscWeeks": 16,
+  "gscSince": "2026-07-13",
+  "ga4ProvisionalWeekStart": "2026-10-26"
+ },
+ "sources": {
+  "vercel": {
+   "ok": true,
+   "queriesOk": 5,
+   "queriesTotal": 5,
+   "errors": [],
+   "projectId": "prj_zNoXiJrpzpACjqblulbPyFvfVOWp"
+  },
+  "ga4": "ok",
+  "gsc": "ok",
+  "google": {
+   "configured": true,
+   "ga4PropertyConfigured": true,
+   "siteUrl": "sc-domain:rma-engineering.com",
+   "errors": []
+  }
+ },
+ "flags": [
+  {
+   "code": "DEEP_PAGES_DOWN",
+   "latest": 31,
+   "avg": 66.5,
+   "ratio": 0.47,
+   "threshold": 0.6,
+   "baselineWeeks": 4,
+   "text": "DEEP_PAGES_DOWN: deep-page visitors 31, prior 4-week avg 66.5, ratio 0.47 (flag <= 0.6)"
+  },
+  {
+   "code": "GA4_VS_VERCEL_GAP",
+   "weekStart": "2026-10-19",
+   "ga4Sessions": 273,
+   "vercelVisitors": 116,
+   "gap": 0.58,
+   "threshold": 0.5,
+   "text": "GA4_VS_VERCEL_GAP (week of Oct 19): GA4 US sessions 273 vs Vercel US visitors 116, gap 0.58 of the larger (flag > 0.5)"
+  }
+ ],
+ "info": [
+  {
+   "code": "EVENT_DROP",
+   "event": "booking_confirmed",
+   "weekStart": "2026-10-19",
+   "latest": 2,
+   "avg": 5,
+   "ratio": 0.4,
+   "threshold": 0.4,
+   "minAvg": 3,
+   "baselineWeeks": 4,
+   "text": "EVENT_DROP (week of Oct 19): booking_confirmed events 2, prior 4-week avg 5, ratio 0.4 (flag <= 0.4, avg >= 3) — info only: leads held, LEADS_DOWN did not fire",
+   "info": true,
+   "reason": "LEADS_DOWN did not fire"
+  }
+ ],
+ "weeks": [
+  {
+   "weekStart": "2026-09-07",
+   "weekEnd": "2026-09-13",
+   "us": {
+    "visitors": 141,
+    "pageviews": 305
+   },
+   "referrers": {
+    "": {
+     "visitors": 75,
+     "pageviews": 199
+    },
+    "google.com": {
+     "visitors": 80,
+     "pageviews": 88
+    },
+    "chatgpt.com": {
+     "visitors": 8,
+     "pageviews": 9
+    },
+    "bing.com": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "linkedin.com": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "duckduckgo.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "other": {
+     "visitors": 4,
+     "pageviews": 6
+    }
+   },
+   "groups": {
+    "adPages": {
+     "visitors": 97,
+     "pageviews": 120
+    },
+    "deepPages": {
+     "visitors": 82,
+     "pageviews": 104
+    },
+    "thankYou": {
+     "visitors": 6,
+     "pageviews": 6
+    },
+    "blog": {
+     "visitors": 10,
+     "pageviews": 10
+    },
+    "metro": {
+     "visitors": 4,
+     "pageviews": 4
+    }
+   },
+   "pages": {
+    "/contact-us": {
+     "visitors": 67,
+     "pageviews": 82
+    },
+    "/": {
+     "visitors": 33,
+     "pageviews": 53
+    },
+    "/inventors": {
+     "visitors": 30,
+     "pageviews": 38
+    },
+    "/reality-check": {
+     "visitors": 18,
+     "pageviews": 26
+    },
+    "/our-approach": {
+     "visitors": 14,
+     "pageviews": 15
+    },
+    "/about-us": {
+     "visitors": 8,
+     "pageviews": 11
+    },
+    "/inventors/thank-you": {
+     "visitors": 6,
+     "pageviews": 6
+    },
+    "/services/design-services": {
+     "visitors": 9,
+     "pageviews": 10
+    },
+    "/services/manufacturing-services": {
+     "visitors": 5,
+     "pageviews": 8
+    },
+    "/services/prototyping-services": {
+     "visitors": 7,
+     "pageviews": 8
+    },
+    "/services": {
+     "visitors": 4,
+     "pageviews": 7
+    },
+    "/blog": {
+     "visitors": 6,
+     "pageviews": 7
+    },
+    "/new-jersey-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/faq": {
+     "visitors": 4,
+     "pageviews": 6
+    },
+    "/blog/prototype-cost": {
+     "visitors": 4,
+     "pageviews": 4
+    },
+    "/industries/entrepreneurs": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/blog/how-to-choose-product-development-company": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/consumer-products": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/assembly-house": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/nyc-prototype-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/philadelphia-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/injection-molding-costs": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/invention-idea-no-money": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/boston-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/ai-render-vs-product-design": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/research-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/material-selection-plastics-vs-metals-vs-composites": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/robotics": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/how-to-turn-your-idea-into-a-product": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/patent-before-prototype": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/automotive": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/los-angeles-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-validate-a-product-idea": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/license-vs-build-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/denver-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/chicago-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/inventhelp-alternatives": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/invention-idea-first-30-days": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/5-key-considerations-design-for-manufacturability": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/from-idea-to-prototype-checklist": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-much-does-it-cost-to-develop-a-product": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-firms-compared-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/tariffs-domestic-vs-overseas-manufacturing-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/3d-printing-vs-cnc-machining": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/overseas-vs-domestic-manufacturing-for-startups": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/careers": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/privacy-policy": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/first-time-inventor-mistakes": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/who-owns-your-product-idea-ip": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/checkout": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/13-advantages-of-injection-molding-for-high-volume-manufacturing": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-prototype-your-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-glossary": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/provisional-vs-utility-patents": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/sketch-to-shelf-timeline": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/downloads/rma-engineering.com/contact-us": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/impressum": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/kontakt": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/services/online-3d-printing": {
+     "visitors": 0,
+     "pageviews": 0
+    }
+   },
+   "pathOverflow": {
+    "visitors": 1,
+    "pageviews": 1
+   },
+   "noReferrer": {
+    "total": 145,
+    "us": 75,
+    "nonUs": 70
+   },
+   "botShareNoReferrer": 0.483,
+   "chatgptPages": [
+    {
+     "path": "/",
+     "visitors": 5,
+     "pageviews": 6
+    },
+    {
+     "path": "/industries/entrepreneurs",
+     "visitors": 2,
+     "pageviews": 2
+    },
+    {
+     "path": "/nyc-prototype-development",
+     "visitors": 1,
+     "pageviews": 1
+    }
+   ],
+   "ga4": {
+    "sessions": 166,
+    "users": 156,
+    "keyEvents": 6,
+    "bySource": {
+     "google/cpc": {
+      "sessions": 81,
+      "users": 75,
+      "keyEvents": 4
+     },
+     "google/organic": {
+      "sessions": 7,
+      "users": 7,
+      "keyEvents": 0
+     },
+     "(direct)/(none)": {
+      "sessions": 43,
+      "users": 40,
+      "keyEvents": 0
+     },
+     "chatgpt.com/referral": {
+      "sessions": 22,
+      "users": 21,
+      "keyEvents": 2
+     },
+     "bing/organic": {
+      "sessions": 2,
+      "users": 2,
+      "keyEvents": 0
+     },
+     "linkedin": {
+      "sessions": 1,
+      "users": 1,
+      "keyEvents": 0
+     },
+     "other": {
+      "sessions": 10,
+      "users": 10,
+      "keyEvents": 0
+     }
+    },
+    "topSources": [
+     {
+      "sourceMedium": "google/cpc",
+      "sessions": 81
+     },
+     {
+      "sourceMedium": "(direct)/(none)",
+      "sessions": 43
+     },
+     {
+      "sourceMedium": "chatgpt.com/ai-assistant",
+      "sessions": 22
+     },
+     {
+      "sourceMedium": "google/organic",
+      "sessions": 7
+     },
+     {
+      "sourceMedium": "bing/organic",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "facebook.com/referral",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "tagassistant.google.com/referral",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "(data not available)/(data not available)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "ai/(not set)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "entrepreneurs/(not set)",
+      "sessions": 1
+     }
+    ],
+    "events": {
+     "form_submit": 4,
+     "form_step2_complete": 4,
+     "booking_confirmed": 5,
+     "generate_lead": 6,
+     "idea_submit": 0
+    },
+    "leads": 9,
+    "provisional": false
+   }
+  },
+  {
+   "weekStart": "2026-09-14",
+   "weekEnd": "2026-09-20",
+   "us": {
+    "visitors": 128,
+    "pageviews": 253
+   },
+   "referrers": {
+    "": {
+     "visitors": 60,
+     "pageviews": 153
+    },
+    "google.com": {
+     "visitors": 84,
+     "pageviews": 89
+    },
+    "chatgpt.com": {
+     "visitors": 5,
+     "pageviews": 7
+    },
+    "bing.com": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "linkedin.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "duckduckgo.com": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "other": {
+     "visitors": 2,
+     "pageviews": 2
+    }
+   },
+   "groups": {
+    "adPages": {
+     "visitors": 89,
+     "pageviews": 104
+    },
+    "deepPages": {
+     "visitors": 68,
+     "pageviews": 78
+    },
+    "thankYou": {
+     "visitors": 8,
+     "pageviews": 9
+    },
+    "blog": {
+     "visitors": 11,
+     "pageviews": 11
+    },
+    "metro": {
+     "visitors": 0,
+     "pageviews": 0
+    }
+   },
+   "pages": {
+    "/contact-us": {
+     "visitors": 53,
+     "pageviews": 60
+    },
+    "/": {
+     "visitors": 29,
+     "pageviews": 42
+    },
+    "/inventors": {
+     "visitors": 36,
+     "pageviews": 44
+    },
+    "/reality-check": {
+     "visitors": 7,
+     "pageviews": 11
+    },
+    "/our-approach": {
+     "visitors": 9,
+     "pageviews": 10
+    },
+    "/about-us": {
+     "visitors": 11,
+     "pageviews": 11
+    },
+    "/inventors/thank-you": {
+     "visitors": 8,
+     "pageviews": 9
+    },
+    "/services/design-services": {
+     "visitors": 6,
+     "pageviews": 7
+    },
+    "/services/manufacturing-services": {
+     "visitors": 8,
+     "pageviews": 8
+    },
+    "/services/prototyping-services": {
+     "visitors": 7,
+     "pageviews": 8
+    },
+    "/services": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog": {
+     "visitors": 5,
+     "pageviews": 8
+    },
+    "/new-jersey-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/faq": {
+     "visitors": 6,
+     "pageviews": 7
+    },
+    "/blog/prototype-cost": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/industries/entrepreneurs": {
+     "visitors": 5,
+     "pageviews": 7
+    },
+    "/blog/how-to-choose-product-development-company": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/consumer-products": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/assembly-house": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/nyc-prototype-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/philadelphia-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/injection-molding-costs": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/invention-idea-no-money": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/boston-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/ai-render-vs-product-design": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/research-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/material-selection-plastics-vs-metals-vs-composites": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/robotics": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/how-to-turn-your-idea-into-a-product": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/patent-before-prototype": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/automotive": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/los-angeles-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-validate-a-product-idea": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/license-vs-build-invention": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/denver-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/chicago-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/inventhelp-alternatives": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/invention-idea-first-30-days": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/5-key-considerations-design-for-manufacturability": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/from-idea-to-prototype-checklist": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-much-does-it-cost-to-develop-a-product": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-firms-compared-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/tariffs-domestic-vs-overseas-manufacturing-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/3d-printing-vs-cnc-machining": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/overseas-vs-domestic-manufacturing-for-startups": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/careers": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/privacy-policy": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/first-time-inventor-mistakes": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/who-owns-your-product-idea-ip": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/checkout": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/13-advantages-of-injection-molding-for-high-volume-manufacturing": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/how-to-prototype-your-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-glossary": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/provisional-vs-utility-patents": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/sketch-to-shelf-timeline": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/downloads/rma-engineering.com/contact-us": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/impressum": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/kontakt": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/services/online-3d-printing": {
+     "visitors": 0,
+     "pageviews": 0
+    }
+   },
+   "pathOverflow": {
+    "visitors": 0,
+    "pageviews": 0
+   },
+   "noReferrer": {
+    "total": 147,
+    "us": 60,
+    "nonUs": 87
+   },
+   "botShareNoReferrer": 0.592,
+   "chatgptPages": [
+    {
+     "path": "/",
+     "visitors": 2,
+     "pageviews": 2
+    },
+    {
+     "path": "/services",
+     "visitors": 2,
+     "pageviews": 2
+    },
+    {
+     "path": "/industries/entrepreneurs",
+     "visitors": 1,
+     "pageviews": 1
+    },
+    {
+     "path": "/industries/robotics",
+     "visitors": 1,
+     "pageviews": 1
+    },
+    {
+     "path": "/our-approach",
+     "visitors": 1,
+     "pageviews": 1
+    }
+   ],
+   "ga4": {
+    "sessions": 122,
+    "users": 117,
+    "keyEvents": 7,
+    "bySource": {
+     "google/cpc": {
+      "sessions": 77,
+      "users": 74,
+      "keyEvents": 7
+     },
+     "google/organic": {
+      "sessions": 12,
+      "users": 10,
+      "keyEvents": 0
+     },
+     "(direct)/(none)": {
+      "sessions": 17,
+      "users": 17,
+      "keyEvents": 0
+     },
+     "chatgpt.com/referral": {
+      "sessions": 13,
+      "users": 13,
+      "keyEvents": 0
+     },
+     "bing/organic": {
+      "sessions": 1,
+      "users": 1,
+      "keyEvents": 0
+     },
+     "linkedin": {
+      "sessions": 0,
+      "users": 0,
+      "keyEvents": 0
+     },
+     "other": {
+      "sessions": 2,
+      "users": 2,
+      "keyEvents": 0
+     }
+    },
+    "topSources": [
+     {
+      "sourceMedium": "google/cpc",
+      "sessions": 77
+     },
+     {
+      "sourceMedium": "(direct)/(none)",
+      "sessions": 17
+     },
+     {
+      "sourceMedium": "chatgpt.com/ai-assistant",
+      "sessions": 13
+     },
+     {
+      "sourceMedium": "google/organic",
+      "sessions": 12
+     },
+     {
+      "sourceMedium": "bing/organic",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "ig/social",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "tagassistant.google.com/referral",
+      "sessions": 1
+     }
+    ],
+    "events": {
+     "form_submit": 3,
+     "form_step2_complete": 3,
+     "booking_confirmed": 1,
+     "generate_lead": 7,
+     "idea_submit": 0
+    },
+    "leads": 4,
+    "provisional": false
+   }
+  },
+  {
+   "weekStart": "2026-09-21",
+   "weekEnd": "2026-09-27",
+   "us": {
+    "visitors": 130,
+    "pageviews": 262
+   },
+   "referrers": {
+    "": {
+     "visitors": 74,
+     "pageviews": 183
+    },
+    "google.com": {
+     "visitors": 69,
+     "pageviews": 74
+    },
+    "chatgpt.com": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "bing.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "linkedin.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "duckduckgo.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "other": {
+     "visitors": 3,
+     "pageviews": 3
+    }
+   },
+   "groups": {
+    "adPages": {
+     "visitors": 84,
+     "pageviews": 101
+    },
+    "deepPages": {
+     "visitors": 55,
+     "pageviews": 73
+    },
+    "thankYou": {
+     "visitors": 9,
+     "pageviews": 10
+    },
+    "blog": {
+     "visitors": 12,
+     "pageviews": 12
+    },
+    "metro": {
+     "visitors": 8,
+     "pageviews": 8
+    }
+   },
+   "pages": {
+    "/contact-us": {
+     "visitors": 52,
+     "pageviews": 62
+    },
+    "/": {
+     "visitors": 34,
+     "pageviews": 48
+    },
+    "/inventors": {
+     "visitors": 32,
+     "pageviews": 39
+    },
+    "/reality-check": {
+     "visitors": 15,
+     "pageviews": 26
+    },
+    "/our-approach": {
+     "visitors": 7,
+     "pageviews": 8
+    },
+    "/about-us": {
+     "visitors": 7,
+     "pageviews": 12
+    },
+    "/inventors/thank-you": {
+     "visitors": 9,
+     "pageviews": 10
+    },
+    "/services/design-services": {
+     "visitors": 4,
+     "pageviews": 4
+    },
+    "/services/manufacturing-services": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/services/prototyping-services": {
+     "visitors": 6,
+     "pageviews": 6
+    },
+    "/services": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog": {
+     "visitors": 6,
+     "pageviews": 6
+    },
+    "/new-jersey-product-development": {
+     "visitors": 7,
+     "pageviews": 7
+    },
+    "/faq": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/prototype-cost": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/industries/entrepreneurs": {
+     "visitors": 2,
+     "pageviews": 3
+    },
+    "/blog/how-to-choose-product-development-company": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/consumer-products": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/assembly-house": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/nyc-prototype-development": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/philadelphia-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/injection-molding-costs": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/invention-idea-no-money": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/boston-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/ai-render-vs-product-design": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/research-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/material-selection-plastics-vs-metals-vs-composites": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/robotics": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/how-to-turn-your-idea-into-a-product": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/patent-before-prototype": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/automotive": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/los-angeles-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-validate-a-product-idea": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/license-vs-build-invention": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/denver-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/chicago-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/inventhelp-alternatives": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/invention-idea-first-30-days": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/5-key-considerations-design-for-manufacturability": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/from-idea-to-prototype-checklist": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-much-does-it-cost-to-develop-a-product": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-firms-compared-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/tariffs-domestic-vs-overseas-manufacturing-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/3d-printing-vs-cnc-machining": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/overseas-vs-domestic-manufacturing-for-startups": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/careers": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/privacy-policy": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/first-time-inventor-mistakes": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/who-owns-your-product-idea-ip": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/checkout": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/13-advantages-of-injection-molding-for-high-volume-manufacturing": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-prototype-your-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-glossary": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/provisional-vs-utility-patents": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/sketch-to-shelf-timeline": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/downloads/rma-engineering.com/contact-us": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/impressum": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/kontakt": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/services/online-3d-printing": {
+     "visitors": 0,
+     "pageviews": 0
+    }
+   },
+   "pathOverflow": {
+    "visitors": 0,
+    "pageviews": 0
+   },
+   "noReferrer": {
+    "total": 136,
+    "us": 74,
+    "nonUs": 62
+   },
+   "botShareNoReferrer": 0.456,
+   "chatgptPages": [
+    {
+     "path": "/",
+     "visitors": 2,
+     "pageviews": 2
+    }
+   ],
+   "ga4": {
+    "sessions": 141,
+    "users": 138,
+    "keyEvents": 8,
+    "bySource": {
+     "google/cpc": {
+      "sessions": 72,
+      "users": 71,
+      "keyEvents": 8
+     },
+     "google/organic": {
+      "sessions": 8,
+      "users": 8,
+      "keyEvents": 0
+     },
+     "(direct)/(none)": {
+      "sessions": 41,
+      "users": 40,
+      "keyEvents": 0
+     },
+     "chatgpt.com/referral": {
+      "sessions": 11,
+      "users": 10,
+      "keyEvents": 0
+     },
+     "bing/organic": {
+      "sessions": 0,
+      "users": 0,
+      "keyEvents": 0
+     },
+     "linkedin": {
+      "sessions": 0,
+      "users": 0,
+      "keyEvents": 0
+     },
+     "other": {
+      "sessions": 9,
+      "users": 9,
+      "keyEvents": 0
+     }
+    },
+    "topSources": [
+     {
+      "sourceMedium": "google/cpc",
+      "sessions": 72
+     },
+     {
+      "sourceMedium": "(direct)/(none)",
+      "sessions": 41
+     },
+     {
+      "sourceMedium": "chatgpt.com/ai-assistant",
+      "sessions": 11
+     },
+     {
+      "sourceMedium": "google/organic",
+      "sessions": 8
+     },
+     {
+      "sourceMedium": "ai/(not set)",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "facebook.com/referral",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "(data not available)/(data not available)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "copilot.com/(not set)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "copilot.com/ai-assistant",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "dubgtcg.dbz/(not set)",
+      "sessions": 1
+     }
+    ],
+    "events": {
+     "form_submit": 2,
+     "form_step2_complete": 2,
+     "booking_confirmed": 2,
+     "generate_lead": 8,
+     "idea_submit": 0
+    },
+    "leads": 4,
+    "provisional": false
+   }
+  },
+  {
+   "weekStart": "2026-09-28",
+   "weekEnd": "2026-10-04",
+   "us": {
+    "visitors": 149,
+    "pageviews": 310
+   },
+   "referrers": {
+    "": {
+     "visitors": 74,
+     "pageviews": 196
+    },
+    "google.com": {
+     "visitors": 84,
+     "pageviews": 98
+    },
+    "chatgpt.com": {
+     "visitors": 3,
+     "pageviews": 4
+    },
+    "bing.com": {
+     "visitors": 2,
+     "pageviews": 4
+    },
+    "linkedin.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "duckduckgo.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "other": {
+     "visitors": 5,
+     "pageviews": 8
+    }
+   },
+   "groups": {
+    "adPages": {
+     "visitors": 97,
+     "pageviews": 133
+    },
+    "deepPages": {
+     "visitors": 58,
+     "pageviews": 69
+    },
+    "thankYou": {
+     "visitors": 8,
+     "pageviews": 8
+    },
+    "blog": {
+     "visitors": 15,
+     "pageviews": 17
+    },
+    "metro": {
+     "visitors": 14,
+     "pageviews": 14
+    }
+   },
+   "pages": {
+    "/contact-us": {
+     "visitors": 58,
+     "pageviews": 79
+    },
+    "/": {
+     "visitors": 46,
+     "pageviews": 64
+    },
+    "/inventors": {
+     "visitors": 39,
+     "pageviews": 54
+    },
+    "/reality-check": {
+     "visitors": 7,
+     "pageviews": 13
+    },
+    "/our-approach": {
+     "visitors": 11,
+     "pageviews": 12
+    },
+    "/about-us": {
+     "visitors": 6,
+     "pageviews": 7
+    },
+    "/inventors/thank-you": {
+     "visitors": 8,
+     "pageviews": 8
+    },
+    "/services/design-services": {
+     "visitors": 6,
+     "pageviews": 8
+    },
+    "/services/manufacturing-services": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/services/prototyping-services": {
+     "visitors": 7,
+     "pageviews": 7
+    },
+    "/services": {
+     "visitors": 4,
+     "pageviews": 5
+    },
+    "/blog": {
+     "visitors": 3,
+     "pageviews": 4
+    },
+    "/new-jersey-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/faq": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/prototype-cost": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/entrepreneurs": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/blog/how-to-choose-product-development-company": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/consumer-products": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/assembly-house": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/nyc-prototype-development": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/philadelphia-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/injection-molding-costs": {
+     "visitors": 4,
+     "pageviews": 4
+    },
+    "/blog/invention-idea-no-money": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/boston-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/ai-render-vs-product-design": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/research-development": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/material-selection-plastics-vs-metals-vs-composites": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/robotics": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/how-to-turn-your-idea-into-a-product": {
+     "visitors": 2,
+     "pageviews": 4
+    },
+    "/blog/patent-before-prototype": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/automotive": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/los-angeles-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/how-to-validate-a-product-idea": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/license-vs-build-invention": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/denver-product-development": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/chicago-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/inventhelp-alternatives": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/invention-idea-first-30-days": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/5-key-considerations-design-for-manufacturability": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/from-idea-to-prototype-checklist": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/how-much-does-it-cost-to-develop-a-product": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-firms-compared-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/tariffs-domestic-vs-overseas-manufacturing-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/3d-printing-vs-cnc-machining": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/overseas-vs-domestic-manufacturing-for-startups": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/careers": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/privacy-policy": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/first-time-inventor-mistakes": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/who-owns-your-product-idea-ip": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/checkout": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/13-advantages-of-injection-molding-for-high-volume-manufacturing": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-prototype-your-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-glossary": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/provisional-vs-utility-patents": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/sketch-to-shelf-timeline": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/downloads/rma-engineering.com/contact-us": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/impressum": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/kontakt": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/services/online-3d-printing": {
+     "visitors": 1,
+     "pageviews": 1
+    }
+   },
+   "pathOverflow": {
+    "visitors": 0,
+    "pageviews": 0
+   },
+   "noReferrer": {
+    "total": 144,
+    "us": 74,
+    "nonUs": 70
+   },
+   "botShareNoReferrer": 0.486,
+   "chatgptPages": [
+    {
+     "path": "/",
+     "visitors": 1,
+     "pageviews": 1
+    },
+    {
+     "path": "/industries/entrepreneurs",
+     "visitors": 1,
+     "pageviews": 1
+    },
+    {
+     "path": "/services",
+     "visitors": 1,
+     "pageviews": 2
+    }
+   ],
+   "ga4": {
+    "sessions": 189,
+    "users": 175,
+    "keyEvents": 5,
+    "bySource": {
+     "google/cpc": {
+      "sessions": 84,
+      "users": 75,
+      "keyEvents": 3
+     },
+     "google/organic": {
+      "sessions": 10,
+      "users": 9,
+      "keyEvents": 0
+     },
+     "(direct)/(none)": {
+      "sessions": 76,
+      "users": 74,
+      "keyEvents": 1
+     },
+     "chatgpt.com/referral": {
+      "sessions": 10,
+      "users": 9,
+      "keyEvents": 1
+     },
+     "bing/organic": {
+      "sessions": 2,
+      "users": 2,
+      "keyEvents": 0
+     },
+     "linkedin": {
+      "sessions": 0,
+      "users": 0,
+      "keyEvents": 0
+     },
+     "other": {
+      "sessions": 7,
+      "users": 6,
+      "keyEvents": 0
+     }
+    },
+    "topSources": [
+     {
+      "sourceMedium": "google/cpc",
+      "sessions": 84
+     },
+     {
+      "sourceMedium": "(direct)/(none)",
+      "sessions": 76
+     },
+     {
+      "sourceMedium": "chatgpt.com/ai-assistant",
+      "sessions": 10
+     },
+     {
+      "sourceMedium": "google/organic",
+      "sessions": 10
+     },
+     {
+      "sourceMedium": "bing/organic",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "tagassistant.google.com/referral",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "(data not available)/(data not available)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "ai/(not set)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "copilot.com/(not set)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "entrepreneurs/(not set)",
+      "sessions": 1
+     }
+    ],
+    "events": {
+     "form_submit": 3,
+     "form_step2_complete": 3,
+     "booking_confirmed": 10,
+     "generate_lead": 5,
+     "idea_submit": 0
+    },
+    "leads": 13,
+    "provisional": false
+   }
+  },
+  {
+   "weekStart": "2026-10-05",
+   "weekEnd": "2026-10-11",
+   "us": {
+    "visitors": 131,
+    "pageviews": 320
+   },
+   "referrers": {
+    "": {
+     "visitors": 88,
+     "pageviews": 248
+    },
+    "google.com": {
+     "visitors": 57,
+     "pageviews": 66
+    },
+    "chatgpt.com": {
+     "visitors": 1,
+     "pageviews": 2
+    },
+    "bing.com": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "linkedin.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "duckduckgo.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "other": {
+     "visitors": 3,
+     "pageviews": 3
+    }
+   },
+   "groups": {
+    "adPages": {
+     "visitors": 72,
+     "pageviews": 96
+    },
+    "deepPages": {
+     "visitors": 70,
+     "pageviews": 88
+    },
+    "thankYou": {
+     "visitors": 11,
+     "pageviews": 11
+    },
+    "blog": {
+     "visitors": 33,
+     "pageviews": 42
+    },
+    "metro": {
+     "visitors": 31,
+     "pageviews": 40
+    }
+   },
+   "pages": {
+    "/contact-us": {
+     "visitors": 50,
+     "pageviews": 62
+    },
+    "/": {
+     "visitors": 33,
+     "pageviews": 39
+    },
+    "/inventors": {
+     "visitors": 22,
+     "pageviews": 34
+    },
+    "/reality-check": {
+     "visitors": 12,
+     "pageviews": 21
+    },
+    "/our-approach": {
+     "visitors": 14,
+     "pageviews": 14
+    },
+    "/about-us": {
+     "visitors": 6,
+     "pageviews": 7
+    },
+    "/inventors/thank-you": {
+     "visitors": 11,
+     "pageviews": 11
+    },
+    "/services/design-services": {
+     "visitors": 8,
+     "pageviews": 9
+    },
+    "/services/manufacturing-services": {
+     "visitors": 3,
+     "pageviews": 5
+    },
+    "/services/prototyping-services": {
+     "visitors": 4,
+     "pageviews": 7
+    },
+    "/services": {
+     "visitors": 4,
+     "pageviews": 5
+    },
+    "/blog": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/new-jersey-product-development": {
+     "visitors": 9,
+     "pageviews": 15
+    },
+    "/faq": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/blog/prototype-cost": {
+     "visitors": 1,
+     "pageviews": 2
+    },
+    "/industries/entrepreneurs": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/blog/how-to-choose-product-development-company": {
+     "visitors": 4,
+     "pageviews": 5
+    },
+    "/industries/consumer-products": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/assembly-house": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/nyc-prototype-development": {
+     "visitors": 4,
+     "pageviews": 7
+    },
+    "/philadelphia-product-development": {
+     "visitors": 7,
+     "pageviews": 7
+    },
+    "/blog/injection-molding-costs": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/invention-idea-no-money": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/boston-product-development": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/blog/ai-render-vs-product-design": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/research-development": {
+     "visitors": 3,
+     "pageviews": 4
+    },
+    "/blog/material-selection-plastics-vs-metals-vs-composites": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/industries/robotics": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/how-to-turn-your-idea-into-a-product": {
+     "visitors": 1,
+     "pageviews": 2
+    },
+    "/blog/patent-before-prototype": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/automotive": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/los-angeles-product-development": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/blog/how-to-validate-a-product-idea": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/license-vs-build-invention": {
+     "visitors": 1,
+     "pageviews": 2
+    },
+    "/denver-product-development": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/chicago-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/inventhelp-alternatives": {
+     "visitors": 2,
+     "pageviews": 3
+    },
+    "/blog/invention-idea-first-30-days": {
+     "visitors": 1,
+     "pageviews": 2
+    },
+    "/blog/5-key-considerations-design-for-manufacturability": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/from-idea-to-prototype-checklist": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-much-does-it-cost-to-develop-a-product": {
+     "visitors": 1,
+     "pageviews": 2
+    },
+    "/blog/product-development-firms-compared-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/tariffs-domestic-vs-overseas-manufacturing-2026": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/3d-printing-vs-cnc-machining": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/overseas-vs-domestic-manufacturing-for-startups": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/careers": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/privacy-policy": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/first-time-inventor-mistakes": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/who-owns-your-product-idea-ip": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/checkout": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/13-advantages-of-injection-molding-for-high-volume-manufacturing": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-prototype-your-invention": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/product-development-glossary": {
+     "visitors": 1,
+     "pageviews": 2
+    },
+    "/blog/provisional-vs-utility-patents": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/sketch-to-shelf-timeline": {
+     "visitors": 1,
+     "pageviews": 2
+    },
+    "/downloads/rma-engineering.com/contact-us": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/impressum": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/kontakt": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/services/online-3d-printing": {
+     "visitors": 0,
+     "pageviews": 0
+    }
+   },
+   "pathOverflow": {
+    "visitors": 0,
+    "pageviews": 0
+   },
+   "noReferrer": {
+    "total": 160,
+    "us": 88,
+    "nonUs": 72
+   },
+   "botShareNoReferrer": 0.45,
+   "chatgptPages": [
+    {
+     "path": "/",
+     "visitors": 1,
+     "pageviews": 1
+    },
+    {
+     "path": "/new-jersey-product-development",
+     "visitors": 1,
+     "pageviews": 1
+    }
+   ],
+   "ga4": {
+    "sessions": 147,
+    "users": 137,
+    "keyEvents": 10,
+    "bySource": {
+     "google/cpc": {
+      "sessions": 58,
+      "users": 56,
+      "keyEvents": 7
+     },
+     "google/organic": {
+      "sessions": 12,
+      "users": 9,
+      "keyEvents": 0
+     },
+     "(direct)/(none)": {
+      "sessions": 59,
+      "users": 56,
+      "keyEvents": 0
+     },
+     "chatgpt.com/referral": {
+      "sessions": 9,
+      "users": 8,
+      "keyEvents": 0
+     },
+     "bing/organic": {
+      "sessions": 1,
+      "users": 1,
+      "keyEvents": 1
+     },
+     "linkedin": {
+      "sessions": 0,
+      "users": 0,
+      "keyEvents": 0
+     },
+     "other": {
+      "sessions": 8,
+      "users": 7,
+      "keyEvents": 2
+     }
+    },
+    "topSources": [
+     {
+      "sourceMedium": "(direct)/(none)",
+      "sessions": 59
+     },
+     {
+      "sourceMedium": "google/cpc",
+      "sessions": 58
+     },
+     {
+      "sourceMedium": "google/organic",
+      "sessions": 12
+     },
+     {
+      "sourceMedium": "chatgpt.com/ai-assistant",
+      "sessions": 9
+     },
+     {
+      "sourceMedium": "(data not available)/(data not available)",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "ai/(not set)",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "yahoo/organic",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "bing/organic",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "tagassistant.google.com/referral",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "vercel.com/referral",
+      "sessions": 1
+     }
+    ],
+    "events": {
+     "form_submit": 3,
+     "form_step2_complete": 3,
+     "booking_confirmed": 3,
+     "generate_lead": 10,
+     "idea_submit": 1
+    },
+    "leads": 7,
+    "provisional": false
+   }
+  },
+  {
+   "weekStart": "2026-10-12",
+   "weekEnd": "2026-10-18",
+   "us": {
+    "visitors": 148,
+    "pageviews": 346
+   },
+   "referrers": {
+    "": {
+     "visitors": 85,
+     "pageviews": 263
+    },
+    "google.com": {
+     "visitors": 73,
+     "pageviews": 78
+    },
+    "chatgpt.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "bing.com": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "linkedin.com": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "duckduckgo.com": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "other": {
+     "visitors": 1,
+     "pageviews": 1
+    }
+   },
+   "groups": {
+    "adPages": {
+     "visitors": 87,
+     "pageviews": 99
+    },
+    "deepPages": {
+     "visitors": 101,
+     "pageviews": 128
+    },
+    "thankYou": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "blog": {
+     "visitors": 32,
+     "pageviews": 34
+    },
+    "metro": {
+     "visitors": 23,
+     "pageviews": 24
+    }
+   },
+   "pages": {
+    "/contact-us": {
+     "visitors": 60,
+     "pageviews": 67
+    },
+    "/": {
+     "visitors": 46,
+     "pageviews": 54
+    },
+    "/inventors": {
+     "visitors": 27,
+     "pageviews": 32
+    },
+    "/reality-check": {
+     "visitors": 16,
+     "pageviews": 25
+    },
+    "/our-approach": {
+     "visitors": 12,
+     "pageviews": 17
+    },
+    "/about-us": {
+     "visitors": 14,
+     "pageviews": 16
+    },
+    "/inventors/thank-you": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/services/design-services": {
+     "visitors": 10,
+     "pageviews": 13
+    },
+    "/services/manufacturing-services": {
+     "visitors": 4,
+     "pageviews": 4
+    },
+    "/services/prototyping-services": {
+     "visitors": 6,
+     "pageviews": 7
+    },
+    "/services": {
+     "visitors": 7,
+     "pageviews": 9
+    },
+    "/blog": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/new-jersey-product-development": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/faq": {
+     "visitors": 3,
+     "pageviews": 5
+    },
+    "/blog/prototype-cost": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/entrepreneurs": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/blog/how-to-choose-product-development-company": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/consumer-products": {
+     "visitors": 9,
+     "pageviews": 10
+    },
+    "/industries/assembly-house": {
+     "visitors": 4,
+     "pageviews": 5
+    },
+    "/industries": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/nyc-prototype-development": {
+     "visitors": 6,
+     "pageviews": 6
+    },
+    "/philadelphia-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/injection-molding-costs": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/invention-idea-no-money": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/boston-product-development": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/blog/ai-render-vs-product-design": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/research-development": {
+     "visitors": 2,
+     "pageviews": 3
+    },
+    "/blog/material-selection-plastics-vs-metals-vs-composites": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/robotics": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/how-to-turn-your-idea-into-a-product": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/patent-before-prototype": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/automotive": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/los-angeles-product-development": {
+     "visitors": 3,
+     "pageviews": 4
+    },
+    "/blog/how-to-validate-a-product-idea": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/license-vs-build-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/denver-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/chicago-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/inventhelp-alternatives": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/invention-idea-first-30-days": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/5-key-considerations-design-for-manufacturability": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/from-idea-to-prototype-checklist": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/blog/how-much-does-it-cost-to-develop-a-product": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-firms-compared-2026": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/tariffs-domestic-vs-overseas-manufacturing-2026": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/3d-printing-vs-cnc-machining": {
+     "visitors": 2,
+     "pageviews": 4
+    },
+    "/blog/overseas-vs-domestic-manufacturing-for-startups": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/careers": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/privacy-policy": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/first-time-inventor-mistakes": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/who-owns-your-product-idea-ip": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/checkout": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/13-advantages-of-injection-molding-for-high-volume-manufacturing": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-prototype-your-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-glossary": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/provisional-vs-utility-patents": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/sketch-to-shelf-timeline": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/downloads/rma-engineering.com/contact-us": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/impressum": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/kontakt": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/services/online-3d-printing": {
+     "visitors": 0,
+     "pageviews": 0
+    }
+   },
+   "pathOverflow": {
+    "visitors": 0,
+    "pageviews": 0
+   },
+   "noReferrer": {
+    "total": 185,
+    "us": 85,
+    "nonUs": 100
+   },
+   "botShareNoReferrer": 0.541,
+   "chatgptPages": [],
+   "ga4": {
+    "sessions": 848,
+    "users": 834,
+    "keyEvents": 0,
+    "bySource": {
+     "google/cpc": {
+      "sessions": 69,
+      "users": 66,
+      "keyEvents": 0
+     },
+     "google/organic": {
+      "sessions": 21,
+      "users": 15,
+      "keyEvents": 0
+     },
+     "(direct)/(none)": {
+      "sessions": 738,
+      "users": 735,
+      "keyEvents": 0
+     },
+     "chatgpt.com/referral": {
+      "sessions": 9,
+      "users": 8,
+      "keyEvents": 0
+     },
+     "bing/organic": {
+      "sessions": 1,
+      "users": 1,
+      "keyEvents": 0
+     },
+     "linkedin": {
+      "sessions": 1,
+      "users": 1,
+      "keyEvents": 0
+     },
+     "other": {
+      "sessions": 9,
+      "users": 8,
+      "keyEvents": 0
+     }
+    },
+    "topSources": [
+     {
+      "sourceMedium": "(direct)/(none)",
+      "sessions": 738
+     },
+     {
+      "sourceMedium": "google/cpc",
+      "sessions": 69
+     },
+     {
+      "sourceMedium": "google/organic",
+      "sessions": 21
+     },
+     {
+      "sourceMedium": "chatgpt.com/ai-assistant",
+      "sessions": 9
+     },
+     {
+      "sourceMedium": "(not set)/(not set)",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "ai/(not set)",
+      "sessions": 2
+     },
+     {
+      "sourceMedium": "(data not available)/(data not available)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "bing/organic",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "direct/(not set)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "duckduckgo/organic",
+      "sessions": 1
+     }
+    ],
+    "events": {
+     "form_submit": 4,
+     "form_step2_complete": 4,
+     "booking_confirmed": 5,
+     "generate_lead": 0,
+     "idea_submit": 3
+    },
+    "leads": 12,
+    "provisional": false
+   }
+  },
+  {
+   "weekStart": "2026-10-19",
+   "weekEnd": "2026-10-25",
+   "us": {
+    "visitors": 116,
+    "pageviews": 200
+   },
+   "referrers": {
+    "": {
+     "visitors": 58,
+     "pageviews": 114
+    },
+    "google.com": {
+     "visitors": 64,
+     "pageviews": 79
+    },
+    "chatgpt.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "bing.com": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "linkedin.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "duckduckgo.com": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "other": {
+     "visitors": 3,
+     "pageviews": 3
+    }
+   },
+   "groups": {
+    "adPages": {
+     "visitors": 70,
+     "pageviews": 86
+    },
+    "deepPages": {
+     "visitors": 37,
+     "pageviews": 41
+    },
+    "thankYou": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "blog": {
+     "visitors": 19,
+     "pageviews": 19
+    },
+    "metro": {
+     "visitors": 5,
+     "pageviews": 5
+    }
+   },
+   "pages": {
+    "/contact-us": {
+     "visitors": 44,
+     "pageviews": 54
+    },
+    "/": {
+     "visitors": 34,
+     "pageviews": 43
+    },
+    "/inventors": {
+     "visitors": 26,
+     "pageviews": 32
+    },
+    "/reality-check": {
+     "visitors": 4,
+     "pageviews": 6
+    },
+    "/our-approach": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/about-us": {
+     "visitors": 6,
+     "pageviews": 6
+    },
+    "/inventors/thank-you": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/services/design-services": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/services/manufacturing-services": {
+     "visitors": 5,
+     "pageviews": 7
+    },
+    "/services/prototyping-services": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/services": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/blog": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/new-jersey-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/faq": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/blog/prototype-cost": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/industries/entrepreneurs": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/how-to-choose-product-development-company": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/industries/consumer-products": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/assembly-house": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/nyc-prototype-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/philadelphia-product-development": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/injection-molding-costs": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/invention-idea-no-money": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/boston-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/ai-render-vs-product-design": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/research-development": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/material-selection-plastics-vs-metals-vs-composites": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/robotics": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-turn-your-idea-into-a-product": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/patent-before-prototype": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/automotive": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/los-angeles-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-validate-a-product-idea": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/license-vs-build-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/denver-product-development": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/chicago-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/inventhelp-alternatives": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/invention-idea-first-30-days": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/5-key-considerations-design-for-manufacturability": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/from-idea-to-prototype-checklist": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-much-does-it-cost-to-develop-a-product": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/product-development-firms-compared-2026": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog/tariffs-domestic-vs-overseas-manufacturing-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/3d-printing-vs-cnc-machining": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/overseas-vs-domestic-manufacturing-for-startups": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/careers": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/privacy-policy": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/first-time-inventor-mistakes": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/who-owns-your-product-idea-ip": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/checkout": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/13-advantages-of-injection-molding-for-high-volume-manufacturing": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-prototype-your-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-glossary": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/provisional-vs-utility-patents": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/sketch-to-shelf-timeline": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/downloads/rma-engineering.com/contact-us": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/impressum": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/kontakt": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/services/online-3d-printing": {
+     "visitors": 0,
+     "pageviews": 0
+    }
+   },
+   "pathOverflow": {
+    "visitors": 1,
+    "pageviews": 2
+   },
+   "noReferrer": {
+    "total": 134,
+    "us": 58,
+    "nonUs": 76
+   },
+   "botShareNoReferrer": 0.567,
+   "chatgptPages": [],
+   "ga4": {
+    "sessions": 273,
+    "users": 257,
+    "keyEvents": 1,
+    "bySource": {
+     "google/cpc": {
+      "sessions": 60,
+      "users": 58,
+      "keyEvents": 1
+     },
+     "google/organic": {
+      "sessions": 23,
+      "users": 10,
+      "keyEvents": 0
+     },
+     "(direct)/(none)": {
+      "sessions": 174,
+      "users": 174,
+      "keyEvents": 0
+     },
+     "chatgpt.com/referral": {
+      "sessions": 8,
+      "users": 7,
+      "keyEvents": 0
+     },
+     "bing/organic": {
+      "sessions": 3,
+      "users": 3,
+      "keyEvents": 0
+     },
+     "linkedin": {
+      "sessions": 0,
+      "users": 0,
+      "keyEvents": 0
+     },
+     "other": {
+      "sessions": 5,
+      "users": 5,
+      "keyEvents": 0
+     }
+    },
+    "topSources": [
+     {
+      "sourceMedium": "(direct)/(none)",
+      "sessions": 174
+     },
+     {
+      "sourceMedium": "google/cpc",
+      "sessions": 60
+     },
+     {
+      "sourceMedium": "google/organic",
+      "sessions": 23
+     },
+     {
+      "sourceMedium": "chatgpt.com/ai-assistant",
+      "sessions": 8
+     },
+     {
+      "sourceMedium": "bing/organic",
+      "sessions": 3
+     },
+     {
+      "sourceMedium": "(data not available)/(data not available)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "ai/(not set)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "tagassistant.google.com/referral",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "usc-excel.officeapps.live.com/referral",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "yahoo/organic",
+      "sessions": 1
+     }
+    ],
+    "events": {
+     "form_submit": 3,
+     "form_step2_complete": 3,
+     "booking_confirmed": 2,
+     "generate_lead": 1,
+     "idea_submit": 11
+    },
+    "leads": 16,
+    "provisional": false
+   }
+  },
+  {
+   "weekStart": "2026-10-26",
+   "weekEnd": "2026-11-01",
+   "us": {
+    "visitors": 139,
+    "pageviews": 221
+   },
+   "referrers": {
+    "": {
+     "visitors": 65,
+     "pageviews": 131
+    },
+    "google.com": {
+     "visitors": 76,
+     "pageviews": 82
+    },
+    "chatgpt.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "bing.com": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "linkedin.com": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "duckduckgo.com": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "other": {
+     "visitors": 2,
+     "pageviews": 2
+    }
+   },
+   "groups": {
+    "adPages": {
+     "visitors": 86,
+     "pageviews": 98
+    },
+    "deepPages": {
+     "visitors": 31,
+     "pageviews": 43
+    },
+    "thankYou": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "blog": {
+     "visitors": 28,
+     "pageviews": 29
+    },
+    "metro": {
+     "visitors": 1,
+     "pageviews": 1
+    }
+   },
+   "pages": {
+    "/contact-us": {
+     "visitors": 47,
+     "pageviews": 53
+    },
+    "/": {
+     "visitors": 33,
+     "pageviews": 46
+    },
+    "/inventors": {
+     "visitors": 39,
+     "pageviews": 45
+    },
+    "/reality-check": {
+     "visitors": 7,
+     "pageviews": 16
+    },
+    "/our-approach": {
+     "visitors": 7,
+     "pageviews": 7
+    },
+    "/about-us": {
+     "visitors": 3,
+     "pageviews": 5
+    },
+    "/inventors/thank-you": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/services/design-services": {
+     "visitors": 2,
+     "pageviews": 3
+    },
+    "/services/manufacturing-services": {
+     "visitors": 5,
+     "pageviews": 5
+    },
+    "/services/prototyping-services": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/services": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/blog": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/new-jersey-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/faq": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/prototype-cost": {
+     "visitors": 5,
+     "pageviews": 6
+    },
+    "/industries/entrepreneurs": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/how-to-choose-product-development-company": {
+     "visitors": 9,
+     "pageviews": 9
+    },
+    "/industries/consumer-products": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries/assembly-house": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/industries": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/nyc-prototype-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/philadelphia-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/injection-molding-costs": {
+     "visitors": 3,
+     "pageviews": 3
+    },
+    "/blog/invention-idea-no-money": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/boston-product-development": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/ai-render-vs-product-design": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/research-development": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/material-selection-plastics-vs-metals-vs-composites": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/industries/robotics": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-turn-your-idea-into-a-product": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/patent-before-prototype": {
+     "visitors": 2,
+     "pageviews": 2
+    },
+    "/industries/automotive": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/los-angeles-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-validate-a-product-idea": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/license-vs-build-invention": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/denver-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/chicago-product-development": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/inventhelp-alternatives": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/invention-idea-first-30-days": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/5-key-considerations-design-for-manufacturability": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/from-idea-to-prototype-checklist": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-much-does-it-cost-to-develop-a-product": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/blog/product-development-firms-compared-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/tariffs-domestic-vs-overseas-manufacturing-2026": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/3d-printing-vs-cnc-machining": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/overseas-vs-domestic-manufacturing-for-startups": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/careers": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/privacy-policy": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/first-time-inventor-mistakes": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/who-owns-your-product-idea-ip": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/checkout": {
+     "visitors": 1,
+     "pageviews": 1
+    },
+    "/13-advantages-of-injection-molding-for-high-volume-manufacturing": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/how-to-prototype-your-invention": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/product-development-glossary": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/provisional-vs-utility-patents": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/blog/sketch-to-shelf-timeline": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/downloads/rma-engineering.com/contact-us": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/impressum": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/kontakt": {
+     "visitors": 0,
+     "pageviews": 0
+    },
+    "/services/online-3d-printing": {
+     "visitors": 0,
+     "pageviews": 0
+    }
+   },
+   "pathOverflow": {
+    "visitors": 0,
+    "pageviews": 0
+   },
+   "noReferrer": {
+    "total": 146,
+    "us": 65,
+    "nonUs": 81
+   },
+   "botShareNoReferrer": 0.555,
+   "chatgptPages": [],
+   "ga4": {
+    "sessions": 480,
+    "users": 477,
+    "keyEvents": 3,
+    "bySource": {
+     "google/cpc": {
+      "sessions": 71,
+      "users": 70,
+      "keyEvents": 3
+     },
+     "google/organic": {
+      "sessions": 5,
+      "users": 4,
+      "keyEvents": 0
+     },
+     "(direct)/(none)": {
+      "sessions": 390,
+      "users": 390,
+      "keyEvents": 0
+     },
+     "chatgpt.com/referral": {
+      "sessions": 4,
+      "users": 4,
+      "keyEvents": 0
+     },
+     "bing/organic": {
+      "sessions": 6,
+      "users": 5,
+      "keyEvents": 0
+     },
+     "linkedin": {
+      "sessions": 1,
+      "users": 1,
+      "keyEvents": 0
+     },
+     "other": {
+      "sessions": 3,
+      "users": 3,
+      "keyEvents": 0
+     }
+    },
+    "topSources": [
+     {
+      "sourceMedium": "(direct)/(none)",
+      "sessions": 390
+     },
+     {
+      "sourceMedium": "google/cpc",
+      "sessions": 71
+     },
+     {
+      "sourceMedium": "bing/organic",
+      "sessions": 6
+     },
+     {
+      "sourceMedium": "google/organic",
+      "sessions": 5
+     },
+     {
+      "sourceMedium": "chatgpt.com/ai-assistant",
+      "sessions": 4
+     },
+     {
+      "sourceMedium": "(data not available)/(data not available)",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "facebook.com/referral",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "linkedin.com/referral",
+      "sessions": 1
+     },
+     {
+      "sourceMedium": "tagassistant.google.com/referral",
+      "sessions": 1
+     }
+    ],
+    "events": {
+     "form_submit": 2,
+     "form_step2_complete": 2,
+     "booking_confirmed": 0,
+     "generate_lead": 2,
+     "idea_submit": 7
+    },
+    "leads": 9,
+    "provisional": true
+   }
+  }
+ ],
+ "gsc": {
+  "siteUrl": "sc-domain:rma-engineering.com",
+  "weeks": [
+   {
+    "weekStart": "2026-07-13",
+    "weekEnd": "2026-07-19",
+    "clicks": 4,
+    "impressions": 145,
+    "ctr": 0.0276,
+    "position": 12,
+    "brand": {
+     "clicks": 2,
+     "impressions": 45
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-07-20",
+    "weekEnd": "2026-07-26",
+    "clicks": 5,
+    "impressions": 73,
+    "ctr": 0.0685,
+    "position": 7.7,
+    "brand": {
+     "clicks": 3,
+     "impressions": 24
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-07-27",
+    "weekEnd": "2026-08-02",
+    "clicks": 1,
+    "impressions": 98,
+    "ctr": 0.0102,
+    "position": 24.9,
+    "brand": {
+     "clicks": 0,
+     "impressions": 37
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-08-03",
+    "weekEnd": "2026-08-09",
+    "clicks": 4,
+    "impressions": 71,
+    "ctr": 0.0563,
+    "position": 12.2,
+    "brand": {
+     "clicks": 2,
+     "impressions": 31
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-08-10",
+    "weekEnd": "2026-08-16",
+    "clicks": 2,
+    "impressions": 96,
+    "ctr": 0.0208,
+    "position": 13.3,
+    "brand": {
+     "clicks": 0,
+     "impressions": 34
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-08-17",
+    "weekEnd": "2026-08-23",
+    "clicks": 3,
+    "impressions": 87,
+    "ctr": 0.0345,
+    "position": 9.8,
+    "brand": {
+     "clicks": 1,
+     "impressions": 41
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-08-24",
+    "weekEnd": "2026-08-30",
+    "clicks": 4,
+    "impressions": 67,
+    "ctr": 0.0597,
+    "position": 11.5,
+    "brand": {
+     "clicks": 1,
+     "impressions": 27
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-08-31",
+    "weekEnd": "2026-09-06",
+    "clicks": 5,
+    "impressions": 115,
+    "ctr": 0.0435,
+    "position": 7,
+    "brand": {
+     "clicks": 3,
+     "impressions": 33
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-09-07",
+    "weekEnd": "2026-09-13",
+    "clicks": 4,
+    "impressions": 81,
+    "ctr": 0.0494,
+    "position": 13.4,
+    "brand": {
+     "clicks": 1,
+     "impressions": 30
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-09-14",
+    "weekEnd": "2026-09-20",
+    "clicks": 6,
+    "impressions": 87,
+    "ctr": 0.069,
+    "position": 6,
+    "brand": {
+     "clicks": 1,
+     "impressions": 37
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-09-21",
+    "weekEnd": "2026-09-27",
+    "clicks": 2,
+    "impressions": 81,
+    "ctr": 0.0247,
+    "position": 8,
+    "brand": {
+     "clicks": 0,
+     "impressions": 37
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-09-28",
+    "weekEnd": "2026-10-04",
+    "clicks": 7,
+    "impressions": 78,
+    "ctr": 0.0897,
+    "position": 10.8,
+    "brand": {
+     "clicks": 2,
+     "impressions": 30
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-10-05",
+    "weekEnd": "2026-10-11",
+    "clicks": 6,
+    "impressions": 107,
+    "ctr": 0.0561,
+    "position": 28,
+    "brand": {
+     "clicks": 2,
+     "impressions": 26
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-10-12",
+    "weekEnd": "2026-10-18",
+    "clicks": 3,
+    "impressions": 370,
+    "ctr": 0.0081,
+    "position": 34.6,
+    "brand": {
+     "clicks": 1,
+     "impressions": 41
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-10-19",
+    "weekEnd": "2026-10-25",
+    "clicks": 2,
+    "impressions": 615,
+    "ctr": 0.0033,
+    "position": 41.6,
+    "brand": {
+     "clicks": 2,
+     "impressions": 27
+    },
+    "provisional": false
+   },
+   {
+    "weekStart": "2026-10-26",
+    "weekEnd": "2026-11-01",
+    "clicks": 2,
+    "impressions": 706,
+    "ctr": 0.0028,
+    "position": 40.7,
+    "brand": {
+     "clicks": 0,
+     "impressions": 33
+    },
+    "provisional": true
+   }
+  ],
+  "provisionalWeekStart": "2026-10-26",
+  "topQueries": {
+   "latestWeekStart": "2026-10-26",
+   "priorWeekStart": "2026-10-19",
+   "rows": [
+    {
+     "query": "product development companies",
+     "impressions": 49,
+     "clicks": 0,
+     "prior": 48,
+     "priorClicks": 0,
+     "delta": 1
+    },
+    {
+     "query": "inventhelp",
+     "impressions": 42,
+     "clicks": 0,
+     "prior": 61,
+     "priorClicks": 0,
+     "delta": -19
+    },
+    {
+     "query": "rma engineering",
+     "impressions": 32,
+     "clicks": 0,
+     "prior": 23,
+     "priorClicks": 2,
+     "delta": 9
+    },
+    {
+     "query": "product development firms",
+     "impressions": 25,
+     "clicks": 0,
+     "prior": 14,
+     "priorClicks": 0,
+     "delta": 11
+    },
+    {
+     "query": "product development firm",
+     "impressions": 19,
+     "clicks": 0,
+     "prior": 11,
+     "priorClicks": 0,
+     "delta": 8
+    },
+    {
+     "query": "product rendering ai",
+     "impressions": 16,
+     "clicks": 0,
+     "prior": 11,
+     "priorClicks": 0,
+     "delta": 5
+    },
+    {
+     "query": "injection molding cost",
+     "impressions": 13,
+     "clicks": 0,
+     "prior": 5,
+     "priorClicks": 0,
+     "delta": 8
+    },
+    {
+     "query": "product engineering firms",
+     "impressions": 13,
+     "clicks": 0,
+     "prior": 6,
+     "priorClicks": 0,
+     "delta": 7
+    },
+    {
+     "query": "ai render product",
+     "impressions": 12,
+     "clicks": 0,
+     "prior": 9,
+     "priorClicks": 0,
+     "delta": 3
+    },
+    {
+     "query": "ai product rendering",
+     "impressions": 11,
+     "clicks": 0,
+     "prior": 9,
+     "priorClicks": 0,
+     "delta": 2
+    },
+    {
+     "query": "product development firms boston",
+     "impressions": 11,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 11
+    },
+    {
+     "query": "product engineering firm",
+     "impressions": 11,
+     "clicks": 0,
+     "prior": 24,
+     "priorClicks": 0,
+     "delta": -13
+    },
+    {
+     "query": "good price for prototype service producer",
+     "impressions": 8,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 8
+    },
+    {
+     "query": "aftermarket engineering",
+     "impressions": 6,
+     "clicks": 0,
+     "prior": 6,
+     "priorClicks": 0,
+     "delta": 0
+    },
+    {
+     "query": "cost for injection molding",
+     "impressions": 6,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 6
+    },
+    {
+     "query": "injection molding mold cost",
+     "impressions": 6,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 6
+    },
+    {
+     "query": "is inventhelp the best invention company",
+     "impressions": 6,
+     "clicks": 0,
+     "prior": 4,
+     "priorClicks": 0,
+     "delta": 2
+    },
+    {
+     "query": "best invention help companies inventhelp.com",
+     "impressions": 5,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 5
+    },
+    {
+     "query": "best invention help company",
+     "impressions": 5,
+     "clicks": 0,
+     "prior": 3,
+     "priorClicks": 0,
+     "delta": 2
+    },
+    {
+     "query": "how to build a prototype with no money",
+     "impressions": 5,
+     "clicks": 0,
+     "prior": 2,
+     "priorClicks": 0,
+     "delta": 3
+    },
+    {
+     "query": "injection molding tooling cost",
+     "impressions": 5,
+     "clicks": 0,
+     "prior": 1,
+     "priorClicks": 0,
+     "delta": 4
+    },
+    {
+     "query": "price of injection molding",
+     "impressions": 5,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 5
+    },
+    {
+     "query": "product design services nj",
+     "impressions": 5,
+     "clicks": 0,
+     "prior": 1,
+     "priorClicks": 0,
+     "delta": 4
+    },
+    {
+     "query": "3d product rendering ai",
+     "impressions": 4,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 4
+    },
+    {
+     "query": "custom robotic actuator prototype manufacturer",
+     "impressions": 4,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 4
+    }
+   ],
+   "up": [
+    {
+     "query": "product development firms",
+     "impressions": 25,
+     "clicks": 0,
+     "prior": 14,
+     "priorClicks": 0,
+     "delta": 11
+    },
+    {
+     "query": "product development firms boston",
+     "impressions": 11,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 11
+    },
+    {
+     "query": "rma engineering",
+     "impressions": 32,
+     "clicks": 0,
+     "prior": 23,
+     "priorClicks": 2,
+     "delta": 9
+    },
+    {
+     "query": "good price for prototype service producer",
+     "impressions": 8,
+     "clicks": 0,
+     "prior": 0,
+     "priorClicks": 0,
+     "delta": 8
+    },
+    {
+     "query": "injection molding cost",
+     "impressions": 13,
+     "clicks": 0,
+     "prior": 5,
+     "priorClicks": 0,
+     "delta": 8
+    }
+   ],
+   "down": [
+    {
+     "query": "prototype manufacturers nj",
+     "impressions": 1,
+     "clicks": 0,
+     "prior": 23,
+     "priorClicks": 0,
+     "delta": -22
+    },
+    {
+     "query": "inventhelp",
+     "impressions": 42,
+     "clicks": 0,
+     "prior": 61,
+     "priorClicks": 0,
+     "delta": -19
+    },
+    {
+     "query": "product engineering firm",
+     "impressions": 11,
+     "clicks": 0,
+     "prior": 24,
+     "priorClicks": 0,
+     "delta": -13
+    },
+    {
+     "query": "product development company framingham",
+     "impressions": 0,
+     "clicks": 0,
+     "prior": 7,
+     "priorClicks": 0,
+     "delta": -7
+    },
+    {
+     "query": "cnc machining vs 3d printing metal",
+     "impressions": 0,
+     "clicks": 0,
+     "prior": 6,
+     "priorClicks": 0,
+     "delta": -6
+    }
+   ]
+  }
+ }
+}
